@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;">
+    <title>Word LAB </title>
+    <link rel="stylesheet" href="./src/css/style.css">
+</head>
+<body>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h1 class="app-title">Word LAB</h1>
+            <div class="header-buttons">
+                <button class="students-btn" onclick="openSearchModal()" title="학생 검색 (Alt+F)">학생 검색</button>
+                <button class="students-btn" onclick="openStudentsModal()" title="학생 관리">학생 관리</button>
+            <button class="settings-btn" onclick="openSettings()" title="학원 정보 설정">⚙️</button>
+            </div>
+        </div>
+
+        <div class="sidebar-content">
+            <div class="section">
+                <h2>1. 시험지 정보</h2>
+                
+                <label>시험지 제목</label>
+                <input type="text" id="inputTitle" placeholder="예: 중등 필수 영단어 (비워두면 자동 입력)" oninput="updateRealTimeTitle()">
+
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1">
+                        <label>날짜</label>
+                        <input type="date" id="inputDate" oninput="updateRealTimeInfo()">
+                    </div>
+                    <div style="flex:1; position: relative;">
+                        <label>학생 이름</label>
+                        <input type="text" id="inputName" placeholder="학생 이름 입력" oninput="updateRealTimeInfo(); searchStudentsAutocomplete()" onfocus="searchStudentsAutocomplete()" onblur="setTimeout(() => hideStudentDropdown(), 200)" style="width:100%; padding:8px; border:1px solid #dee2e6; border-radius:6px; box-sizing:border-box; font-size:13px;">
+                        <input type="hidden" id="inputStudentId" value="">
+                        <div id="studentAutocompleteDropdown" class="student-autocomplete-dropdown" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section section-grow">
+                <h2>2. 출제 범위</h2>
+                <div style="position: relative;">
+                <div style="display: flex; gap: 5px; align-items: center;">
+                        <div style="flex: 1; position: relative;">
+                            <div style="position: relative;">
+                                <button id="fileDropdownToggle" class="file-dropdown-toggle" onclick="toggleFileDropdown()" title="단어장 목록 열기">
+                                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M2 4L5 7L8 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </button>
+                                <input type="text" id="fileSearchInput" placeholder="단어장 검색" 
+                                       oninput="filterFileList(); toggleClearButton()" 
+                                       onfocus="showFileDropdown()"
+                                       style="width: 100%; padding:8px 30px 8px 32px; border:1px solid #dee2e6; border-radius:6px; box-sizing:border-box; font-size:13px; margin-bottom:8px;">
+                                <button id="fileSearchClear" class="file-search-clear" onclick="clearFileSearch()" style="display: none;" title="검색어 지우기">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <select id="fileSelect" style="display: none;"></select>
+                            <div id="fileDropdown" class="file-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #dee2e6; border-radius: 6px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: -8px;">
+                                <!-- 검색 결과가 여기에 표시됩니다 -->
+                            </div>
+                        </div>
+                    <button id="btnPin" class="btn-pin" onclick="togglePin()" title="즐겨찾기 고정">☆</button>
+                    </div>
+                </div>
+                
+                <div class="chapter-container">
+                    <div class="chapter-header">
+                        <span>챕터 선택</span>
+                        <label style="font-size:12px; color:#228be6;">
+                            <input type="checkbox" id="checkAll" onclick="toggleAllChapters()"> 전체 선택
+                        </label>
+                    </div>
+                    <div id="chapterList" class="chapter-list">
+                        <div style="padding:10px; text-align:center; color:#999; grid-column: span 2;">파일 로딩중...</div>
+                    </div>
+                </div>
+                
+                <div class="stats-text">
+                    총 단어 수: <span id="maxCountDisplay" class="stats-highlight">0</span>개
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="option-header">
+                    <span>3. 옵션</span>
+                    <div style="display:flex; align-items:center; gap:6px; margin-left:auto;">
+                        <input type="checkbox" id="shuffleOption" checked style="width:auto; margin:0; cursor:pointer;">
+                        <label for="shuffleOption" style="margin:0; cursor:pointer; font-size:12px; font-weight:600; color:#495057; white-space:nowrap;">단어 셔플</label>
+                    </div>
+                </h2>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="flex:1;">
+                        <label>유형</label>
+                        <div style="position: relative;">
+                            <select id="typeSelect" style="padding-right: 32px; appearance: none; -webkit-appearance: none; -moz-appearance: none;">
+                                <option value="eng">영 → 한</option>
+                                <option value="kor">한 → 영</option>
+                            </select>
+                            <div class="select-arrow">
+                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M2 4L5 7L8 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="flex:1;">
+                        <label>문항 수</label>
+                        <input type="number" id="qCount" value="40" min="1" max="9999" oninput="validateQuestionCount()">
+                    </div>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="action-btn btn-primary" onclick="generateTest()">시험지 생성</button>
+                <button class="action-btn btn-outline" id="btnToggleAnswer" onclick="toggleAnswers()">정답 확인</button>
+                <button class="action-btn btn-success" onclick="printTest(false)">문제지 인쇄</button>
+                <button class="action-btn btn-warning" onclick="printTest(true)">답지 인쇄</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="resizer" id="resizer"></div>
+
+    <div class="preview-container" id="previewArea">
+        <div class="paper">
+            <div style="display:flex; height:100%; justify-content:center; align-items:center; color:#ccc; flex-direction: column;">
+                <div style="font-size: 40px; margin-bottom: 10px;">📄</div>
+                <div>설정 후 [시험지 생성] 클릭</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="zoom-controls">
+        <span>🔍 화면 배율</span>
+        <input type="range" id="zoomRange" min="0.5" max="1.5" step="0.1" value="0.6" oninput="changeZoom(this.value)">
+        <span id="zoomValue">60%</span>
+    </div>
+
+    <!-- 라이선스 비밀번호 입력 모달 (초기 접근용) -->
+    <div id="passwordSetupModal" class="modal-overlay" style="display: none; z-index: 10000;">
+        <div class="modal" style="width: 400px; max-width: 90vw;">
+            <h3>🔒 라이선스 비밀번호 입력</h3>
+            <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
+                이 프로그램을 사용하려면 라이선스 비밀번호가 필요합니다.<br>
+                비밀번호를 입력해주세요.
+            </p>
+            <div style="margin-bottom: 20px;">
+                <label>라이선스 비밀번호</label>
+                <input type="password" id="setupPassword" placeholder="라이선스 비밀번호 입력" 
+                       style="width: 100%; padding: 10px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 14px; box-sizing: border-box;"
+                       onkeypress="if(event.key==='Enter') window.authManager?.setupPassword()"
+                       autofocus>
+            </div>
+            <div id="passwordSetupError" style="color: #fa5252; font-size: 12px; margin-bottom: 15px; min-height: 20px;"></div>
+            <button class="action-btn btn-primary" style="width: 100%; box-sizing: border-box;" onclick="window.authManager?.setupPassword()">확인</button>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="modal-overlay" onclick="if(event.target === this) closeSettings()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <h3>⚙️ 설정</h3>
+            
+            <!-- 탭 메뉴 -->
+            <div class="settings-tabs">
+                <button class="settings-tab active" onclick="switchSettingsTab('academy')">학원 정보</button>
+                <button class="settings-tab" onclick="switchSettingsTab('database')">공유 폴더 설정</button>
+                <button class="settings-tab" onclick="switchSettingsTab('security')">보안 설정</button>
+            </div>
+
+            <!-- 학원 정보 탭 -->
+            <div id="academyTab" class="settings-tab-content active">
+                <label>학원 이름 (텍스트)</label>
+                <input type="text" id="settingAcademyName" placeholder="예: SKY 영어학원" oninput="updateLogoPreview()">
+                
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                    <label style="margin:0;">학원 로고 (이미지)</label>
+                    <button type="button" class="btn-sm-danger" onclick="removeLogoOnly()">이미지 삭제</button>
+                </div>
+                
+                <input type="file" id="settingLogoFile" accept="image/*" style="margin-top:5px;">
+                <div id="logoPreview" style="margin-top:5px; margin-bottom:10px; height:45px; border:1px dashed #ccc; display:flex; align-items:center; justify-content:center; color:#999; font-size:12px;">이미지 미리보기</div>
+
+                <label>로고/이름 위치</label>
+                <div class="radio-group" style="margin-bottom:10px;">
+                    <label><input type="radio" name="logoPos" value="flex-start"><span>왼쪽</span></label>
+                    <label><input type="radio" name="logoPos" value="center" checked><span>가운데</span></label>
+                    <label><input type="radio" name="logoPos" value="flex-end"><span>오른쪽</span></label>
+                </div>
+
+                <label>크기 조절 (100% ~ 300%)</label>
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                    <input type="range" id="logoSize" min="100" max="300" value="100" style="flex:1;" oninput="updateLogoSizeDisplay(this.value); updateLogoPreview()">
+                    <span id="logoSizeDisplay" style="font-size:13px; font-weight:600; color:#495057; min-width:50px; text-align:right;">100%</span>
+                </div>
+                
+                <div style="padding:12px; background:#f8f9fa; border-radius:8px; border:1px solid #dee2e6; margin-bottom:10px;">
+                    <div style="font-size:11px; color:#868e96; margin-bottom:6px; font-weight:600;">실제 크기 미리보기:</div>
+                    <div id="logoSizePreview" style="display:flex; align-items:center; justify-content:center; min-height:50px; padding:8px; background:white; border-radius:6px; border:1px dashed #ced4da;">
+                        <span style="color:#999; font-size:12px;">로고 또는 이름을 입력하면 미리보기가 표시됩니다</span>
+                    </div>
+                </div>
+
+                <label>시험지 제목</label>
+                <input type="text" id="mainTitle" placeholder="VOCABULARY TEST" style="margin-bottom:8px;">
+
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <input type="checkbox" id="showMainTitle" style="width:auto; margin:0; cursor:pointer;">
+                    <label for="showMainTitle" style="margin:0; cursor:pointer; font-size:13px; font-weight:600; color:#495057;">제목 표시</label>
+                </div>
+            </div>
+
+            <!-- 데이터베이스 탭 -->
+            <div id="databaseTab" class="settings-tab-content" style="display:none;">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #495057;">📁 데이터베이스 경로 설정</h4>
+                <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 10px; font-size: 11px; color: #495057; line-height: 1.6;">
+                    <strong>📌 네트워크 공유 폴더 설정 방법:</strong><br>
+                    1. 한 컴퓨터에서 폴더를 공유합니다 (예: C:\VocaDB)<br>
+                    2. 다른 컴퓨터에서 공유 폴더 경로를 확인합니다<br>
+                    3. 아래에 경로를 입력하고 설정합니다<br><br>
+                    <strong>경로 형식:</strong><br>
+                    • 네트워크 경로: <code style="background: white; padding: 2px 4px; border-radius: 3px;">\\192.168.0.100\VocaDB</code><br>
+                    • 또는: <code style="background: white; padding: 2px 4px; border-radius: 3px;">\\컴퓨터이름\VocaDB</code><br>
+                    • 로컬 경로: <code style="background: white; padding: 2px 4px; border-radius: 3px;">C:\Shared\VocaDB</code><br><br>
+                    <strong>⚠️ 주의:</strong> 모든 컴퓨터에서 같은 경로를 설정해야 합니다. 경로 설정 후 앱을 재시작해야 적용됩니다.
+                </div>
+                <div class="db-path-display" id="currentDbPath">로딩 중...</div>
+                <div class="path-input-group">
+                    <input type="text" id="dbPathInput" placeholder="경로 입력 (예: \\192.168.0.100\VocaDB)">
+                    <button class="action-btn btn-primary" style="width:auto; padding:8px 15px; height:auto;" onclick="setDbPath()">경로 설정</button>
+                </div>
+            </div>
+
+            <!-- 보안 설정 탭 -->
+            <div id="securityTab" class="settings-tab-content" style="display:none;">
+                <h4 style="margin: 0 0 15px 0; font-size: 14px; color: #495057;">라이선스 정보</h4>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <p style="margin: 0; font-size: 13px; color: #495057; line-height: 1.6;">
+                        이 프로그램은 라이선스 비밀번호로 보호되어 있습니다.<br>
+                        각 기기에서 처음 실행 시 라이선스 비밀번호를 입력해야 합니다.<br><br>
+                        <strong>현재 기기 상태:</strong> 
+                        <span id="licenseStatus" style="color: #28a745; font-weight: 600;">인증 완료</span>
+                    </p>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label>라이선스 비밀번호 재입력 (기기 재인증)</label>
+                    <input type="password" id="reverifyPassword" placeholder="라이선스 비밀번호 입력" 
+                           style="width: 100%; padding: 10px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 14px; box-sizing: border-box;"
+                           onkeypress="if(event.key==='Enter') window.authManager?.reverifyLicense()">
+                </div>
+                <div id="passwordReverifyError" style="color: #fa5252; font-size: 12px; margin-bottom: 15px; min-height: 20px;"></div>
+                <button class="action-btn btn-primary" style="width: 100%; box-sizing: border-box;" onclick="window.authManager?.reverifyLicense()">재인증</button>
+            </div>
+
+            <div class="modal-btn-group">
+                <button class="action-btn btn-danger-outline" style="width:auto; padding:8px 15px; height:auto;" onclick="removeSettings()">정보 삭제</button>
+                <div class="modal-right-btns">
+                    <button class="action-btn btn-outline" style="width:auto; padding:8px 15px; height:auto;" onclick="closeSettings()">닫기</button>
+                    <button class="action-btn btn-primary" style="width:auto; padding:8px 15px; height:auto;" onclick="saveSettings()">저장하기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 학생 검색 모달 -->
+    <div id="searchModal" class="modal-overlay" onclick="if(event.target === this) closeSearchModal()">
+        <div class="modal modal-large search-modal" onclick="event.stopPropagation()">
+            <h3>🔍 학생 검색 (Alt+F)</h3>
+            
+            <div class="search-header">
+                <div class="search-input-group">
+                    <label>검색 기준</label>
+                    <select id="searchCriteria" style="width: 100px; margin-right: 10px;">
+                        <option value="name">이름</option>
+                    </select>
+                </div>
+                <div class="search-input-group" style="flex: 2;">
+                    <label>검색어</label>
+                    <input type="text" id="searchInput" placeholder="학생 이름을 입력하세요" 
+                           onkeypress="if(event.key==='Enter') performSearch()" 
+                           style="width: 100%;">
+                </div>
+                <button class="action-btn btn-primary" style="width:auto; padding:8px 20px; height:auto;" onclick="performSearch()">조회</button>
+            </div>
+
+            <div class="search-results" id="searchResults">
+                <div style="text-align: center; color: #999; padding: 20px;">검색어를 입력하고 조회 버튼을 클릭하세요.</div>
+            </div>
+
+            <div id="selectedStudentInfo" style="display: none;">
+                <h4 style="margin: 15px 0 10px 0; font-size: 14px; color: #495057;">📚 학생 단어장 목록</h4>
+                <div class="wordbook-list" id="wordbookList">
+                    <!-- 단어장 목록이 여기에 표시됩니다 -->
+                </div>
+                <div id="chapterStatsSection" style="display: none; margin-top: 15px;">
+                    <h4 style="margin: 15px 0 10px 0; font-size: 14px; color: #495057;">📖 챕터별 시험 통계</h4>
+                    <div class="search-results" id="chapterStatsList" style="max-height: 300px;">
+                        <!-- 챕터별 통계가 여기에 표시됩니다 -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-btn-group">
+                <button class="action-btn btn-outline" style="width:auto; padding:8px 15px; height:auto;" onclick="closeSearchModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 학생 수정 모달 -->
+    <div id="editStudentModal" class="modal-overlay modal-overlay-top no-click-close" style="display: none;">
+        <div class="modal">
+            <h3>✏️ 학생 정보 수정</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                <div>
+                    <label>이름 *</label>
+                    <input type="text" id="editStudentName" placeholder="학생 이름" style="width: 100%;">
+                </div>
+                <div>
+                    <label>반</label>
+                    <input type="text" id="editStudentClass" placeholder="예: A, B, 1반" style="width: 100%;">
+                </div>
+                <div>
+                    <label>학교</label>
+                    <input type="text" id="editStudentSchool" placeholder="예: 용문중" style="width: 100%;">
+                </div>
+                <div>
+                    <label>학년</label>
+                    <input type="text" id="editStudentGrade" placeholder="예: 1, 2, 3" style="width: 100%;">
+                </div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label>단어장</label>
+                <div style="position: relative;">
+                    <input type="text" id="editStudentWordbookSearch" placeholder="단어장 검색" 
+                           style="width: 100%; padding: 8px 30px 8px 32px; border: 1px solid #dee2e6; border-radius: 6px; box-sizing: border-box; font-size: 13px;"
+                           oninput="window.studentManager.filterWordbookList('edit')"
+                           onfocus="window.studentManager.showWordbookDropdown('edit')">
+                    <button class="file-dropdown-toggle" onclick="window.studentManager.toggleWordbookDropdown('edit')" 
+                            style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: none; cursor: pointer; padding: 4px;">
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M2 4L5 7L8 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <select id="editStudentWordbook" style="display: none;">
+                        <option value="">선택 안 함</option>
+                    </select>
+                    <div id="editStudentWordbookDropdown" class="file-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #dee2e6; border-radius: 6px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: -8px;">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-btn-group">
+                <button class="action-btn btn-outline" style="width:auto; padding:8px 15px; height:auto;" onclick="window.studentManager.closeEditModal()">취소</button>
+                <button class="action-btn btn-primary" style="width:auto; padding:8px 15px; height:auto;" onclick="window.studentManager.saveEditStudent()">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 학생 관리 모달 -->
+    <div id="studentsModal" class="modal-overlay" onclick="if(event.target === this && !window._isStudentOperationInProgress) closeStudentsModal()">
+        <div class="modal modal-large" onclick="event.stopPropagation()">
+            <h3>👥 학생 관리</h3>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #495057;">➕ 새 학생 추가</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div>
+                        <label>이름 *</label>
+                        <input type="text" id="newStudentName" placeholder="학생 이름" style="width: 100%;">
+                    </div>
+                    <div>
+                        <label>반</label>
+                        <input type="text" id="newStudentClass" placeholder="예: A, B, 1반" style="width: 100%;">
+                    </div>
+                    <div>
+                        <label>학교</label>
+                        <input type="text" id="newStudentSchool" placeholder="예: 용문중" style="width: 100%;">
+                    </div>
+                    <div>
+                        <label>학년</label>
+                        <input type="text" id="newStudentGrade" placeholder="예: 1, 2, 3" style="width: 100%;">
+                    </div>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <label>단어장</label>
+                    <div style="position: relative;">
+                        <input type="text" id="newStudentWordbookSearch" placeholder="단어장 검색" 
+                               style="width: 100%; padding: 8px 30px 8px 32px; border: 1px solid #dee2e6; border-radius: 6px; box-sizing: border-box; font-size: 13px;"
+                               oninput="window.studentManager.filterWordbookList('new')"
+                               onfocus="window.studentManager.showWordbookDropdown('new')">
+                        <button class="file-dropdown-toggle" onclick="window.studentManager.toggleWordbookDropdown('new')" 
+                                style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: none; cursor: pointer; padding: 4px;">
+                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M2 4L5 7L8 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <select id="newStudentWordbook" style="display: none;">
+                            <option value="">선택 안 함</option>
+                        </select>
+                        <div id="newStudentWordbookDropdown" class="file-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #dee2e6; border-radius: 6px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: -8px;">
+                        </div>
+                    </div>
+                </div>
+                <button class="action-btn btn-primary" style="width:100%; padding:10px; height:auto;" onclick="addStudent()">학생 추가</button>
+            </div>
+
+            <h4 style="margin: 15px 0 10px 0; font-size: 14px; color: #495057;">📋 등록된 학생 목록</h4>
+            <div style="margin-bottom: 10px;">
+                <input type="text" id="studentSearchInput" placeholder="🔍 학생 이름, 반, 학교, 학년으로 검색..." 
+                       style="width: 100%; padding: 8px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 13px;"
+                       oninput="window.studentManager.filterStudents()">
+            </div>
+            <div class="students-list" id="studentsList">
+                <div style="text-align: center; color: #999; padding: 20px;">로딩 중...</div>
+            </div>
+
+            <div class="modal-btn-group">
+                <button class="action-btn btn-outline" style="width:auto; padding:8px 15px; height:auto;" onclick="closeStudentsModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./src/js/main.js"></script>
+    <script>
+        // 전역 함수 노출 (HTML onclick 속성 호환)
+        // 모듈 스크립트 다음에 위치하므로 모듈 로드 후 실행됨
+        window.openSearchModal = () => window.studentManager?.openSearchModal();
+        window.closeSearchModal = () => window.studentManager?.closeSearchModal();
+        window.openStudentsModal = () => window.studentManager?.openStudentsModal();
+        window.closeStudentsModal = () => window.studentManager?.closeStudentsModal();
+        window.openSettings = () => window.settingsManager?.openSettings();
+        window.closeSettings = () => window.settingsManager?.closeSettings();
+        window.generateTest = () => window.testGenerator?.generateTest();
+        window.toggleAnswers = () => window.testGenerator?.toggleAnswers();
+        window.printTest = (isAnswerKey) => {
+            if (!window.testGenerator || !window.testGenerator.printTest) {
+                alert('인쇄 기능을 사용할 수 없습니다. 페이지를 새로고침해주세요.');
+                return;
+            }
+            window.testGenerator.printTest(isAnswerKey);
+        };
+        window.togglePin = () => window.fileManager?.togglePin();
+        window.clearFileSearch = () => window.fileManager?.clearFileSearch();
+        window.filterFileList = () => window.fileManager?.filterFileList();
+        window.showFileDropdown = () => window.fileManager?.showFileDropdown();
+        window.toggleFileDropdown = () => window.fileManager?.toggleFileDropdown();
+        window.toggleClearButton = () => window.fileManager?.toggleClearButton();
+        window.toggleAllChapters = () => window.sheetManager?.toggleAllChapters();
+        window.updateStats = () => window.sheetManager?.updateStats();
+        window.validateQuestionCount = () => window.sheetManager?.validateQuestionCount();
+        window.updateRealTimeInfo = () => window.ui?.updateRealTimeInfo();
+        window.updateRealTimeTitle = () => window.ui?.updateRealTimeTitle();
+        window.performSearch = () => window.studentManager?.performSearch();
+        window.addStudent = () => window.studentManager?.addStudent();
+        window.setDbPath = () => window.settingsManager?.setDbPath();
+        window.removeLogoOnly = () => window.settingsManager?.removeLogoOnly();
+        window.removeSettings = () => window.settingsManager?.removeSettings();
+        window.saveSettings = () => window.settingsManager?.saveSettings();
+        window.changeZoom = (val) => window.ui?.changeZoom(val);
+        window.updateLogoSizeDisplay = (val) => window.settingsManager?.updateLogoSizeDisplay(val);
+        window.updateLogoPreview = () => window.settingsManager?.updateLogoPreview();
+        window.switchSettingsTab = (tabName) => window.settingsManager?.switchSettingsTab(tabName);
+        window.filterWordbookList = (type) => window.studentManager?.filterWordbookList(type);
+        window.selectWordbook = (type, wordbook) => window.studentManager?.selectWordbook(type, wordbook);
+        window.showWordbookDropdown = (type) => window.studentManager?.showWordbookDropdown(type);
+        window.toggleWordbookDropdown = (type) => window.studentManager?.toggleWordbookDropdown(type);
+    </script>
+</body>
+</html>
