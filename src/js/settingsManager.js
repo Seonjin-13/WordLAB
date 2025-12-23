@@ -4,7 +4,12 @@ import { generateTest } from './testGenerator.js';
 export function openSettings() { 
     document.getElementById('settingsModal').style.display = 'flex'; 
     loadSettingsToModal(); 
-    loadDbPath(); 
+    loadDbPath();
+    // 초기 탭(학원 정보) 버튼 표시
+    const removeBtn = document.getElementById('removeSettingsBtn');
+    const saveBtn = document.getElementById('saveSettingsBtn');
+    if (removeBtn) removeBtn.style.display = 'block';
+    if (saveBtn) saveBtn.style.display = 'block';
 }
 
 export function closeSettings() { 
@@ -208,6 +213,20 @@ export function switchSettingsTab(tabName) {
     if (tabContent) {
         tabContent.classList.add('active');
         tabContent.style.display = 'block';
+    }
+    
+    // 탭별 버튼 표시/숨김 처리
+    const removeBtn = document.getElementById('removeSettingsBtn');
+    const saveBtn = document.getElementById('saveSettingsBtn');
+    
+    if (tabName === 'academy') {
+        // 학원 정보 탭: 정보 삭제, 저장하기 표시
+        if (removeBtn) removeBtn.style.display = 'block';
+        if (saveBtn) saveBtn.style.display = 'block';
+    } else {
+        // 다른 탭: 정보 삭제, 저장하기 숨김
+        if (removeBtn) removeBtn.style.display = 'none';
+        if (saveBtn) saveBtn.style.display = 'none';
     }
     
     // 보안 탭으로 전환 시 에러 메시지 초기화 및 상태 업데이트

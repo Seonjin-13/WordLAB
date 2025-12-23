@@ -207,10 +207,24 @@ input[type="checkbox"], input[type="radio"] { cursor: pointer; }
     display: grid; 
     grid-template-columns: 1fr 1fr; /* 2열 */
     gap: 8px; 
-    padding-top: 15px; 
-    border-top: 1px solid #eee; 
+    padding-top: 5px; 
 }
 /* btn-full 제거함 (모든 버튼이 1칸씩 차지) */
+
+/* --- [저작권 푸터] --- */
+.copyright-footer {
+    margin-top: 5px;
+    flex-shrink: 0;
+    padding-top: 8px;
+    border-top: 1px solid #eee;
+}
+.copyright-text {
+    font-size: 9px;
+    color: #adb5bd;
+    text-align: center;
+    padding: 0;
+    line-height: 1.2;
+}
 
 button.action-btn { 
     padding: 0; border: none; border-radius: 6px; cursor: pointer; 
@@ -366,8 +380,8 @@ button.action-btn {
     pointer-events: auto !important;
 }
 .modal {
-    background: white; width: 450px; padding: 20px; border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    background: white; width: 500px; padding: 20px; border-radius: 12px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
     max-height: 90vh; overflow-y: auto;
     box-sizing: border-box;
 }
@@ -386,7 +400,7 @@ button.action-btn {
 /* 설정 탭 */
 .settings-tabs {
     display: flex;
-    gap: 8px;
+    gap: 20px;
     margin-bottom: 20px;
     border-bottom: 2px solid #e9ecef;
 }
@@ -401,6 +415,8 @@ button.action-btn {
     color: #868e96;
     transition: all 0.2s;
     margin-bottom: -2px;
+    text-align: center;
+    white-space: nowrap;
 }
 .settings-tab:hover {
     color: #495057;
