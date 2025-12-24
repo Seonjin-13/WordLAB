@@ -13,16 +13,38 @@ function getDbDirectory() {
     if (fs.existsSync(configFile)) {
         try {
             const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
-            if (config.dbPath && fs.existsSync(config.dbPath)) {
-                return config.dbPath;
+            if (config.dbPath) {
+                // 네트워크 경로 접근 시 타임아웃 방지를 위해 try-catch로 감싸기
+                try {
+                    if (fs.existsSync(config.dbPath)) {
+                        const stats = fs.statSync(config.dbPath);
+                        if (stats.isDirectory()) {
+                            return config.dbPath;
+                        }
+                    }
+                } catch (networkError) {
+                    // 네트워크 경로 접근 실패 시 기본 경로 사용
+                    console.warn('네트워크 경로 접근 실패, 기본 경로 사용:', networkError.message);
+                }
             }
         } catch (e) {
             // 설정 파일 읽기 실패 (기본값 사용)
         }
     }
     
-    // 기본값: 프로젝트 폴더 내 Database 폴더
-    const defaultDbDir = path.join(__dirname, '..', 'Database');
+    // 기본값: exe 파일과 같은 위치의 Database 폴더 (포터블 버전)
+    // 개발 모드: 프로젝트 루트의 Database 폴더
+    // 빌드 모드: exe 파일이 있는 위치의 Database 폴더
+    let defaultDbDir;
+    if (app.isPackaged) {
+        // 빌드된 앱: exe 파일이 있는 디렉토리
+        const exeDir = path.dirname(process.execPath);
+        defaultDbDir = path.join(exeDir, 'Database');
+    } else {
+        // 개발 모드: 프로젝트 루트
+        defaultDbDir = path.join(__dirname, '..', 'Database');
+    }
+    
     if (!fs.existsSync(defaultDbDir)) {
         fs.mkdirSync(defaultDbDir, { recursive: true });
     }
@@ -45,7 +67,9 @@ function getWordbooksDirectory() {
     }
     
     // 기존 프로젝트 루트의 Wordbooks 폴더에서 파일 마이그레이션 (한 번만 실행)
-    const oldWordbooksDir = path.join(__dirname, '..', 'Wordbooks');
+    // 빌드된 앱에서는 app.asar를 건너뛰기 위해 app.getAppPath() 사용
+    const appPath = app.getAppPath();
+    const oldWordbooksDir = path.join(appPath, 'Wordbooks');
     if (fs.existsSync(oldWordbooksDir) && oldWordbooksDir !== wordbooksDir) {
         try {
             const files = fs.readdirSync(oldWordbooksDir);

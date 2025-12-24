@@ -19,7 +19,7 @@ async function loadLicensePassword() {
     }
     
     // 환경 변수가 없으면 기본값 사용 (개발용)
-    APP_LICENSE_PASSWORD = 'VocaMaster2025!@#';
+    APP_LICENSE_PASSWORD = 'WORDLAB2025!@!';
     return APP_LICENSE_PASSWORD;
 }
 

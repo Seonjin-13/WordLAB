@@ -27,11 +27,19 @@ export async function loadDbPath() {
 
 export async function setDbPath() {
     const input = document.getElementById('dbPathInput');
+    const button = document.getElementById('setDbPathBtn');
     const path = input.value.trim();
+    
     if (!path) {
         alert('경로를 입력해주세요.');
         return;
     }
+    
+    // 버튼 비활성화 및 로딩 상태 표시
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = '확인 중...';
+    input.disabled = true;
     
     try {
         const result = await window.api.setDbPath(path);
@@ -44,6 +52,11 @@ export async function setDbPath() {
         }
     } catch (error) {
         alert('오류: ' + error.message);
+    } finally {
+        // 버튼 및 입력 필드 복원
+        button.disabled = false;
+        button.textContent = originalText;
+        input.disabled = false;
     }
 }
 

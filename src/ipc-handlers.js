@@ -10,20 +10,63 @@ const DB_NAME = 'students.db';
 // 파일 관련 핸들러
 function setupFileHandlers(ipcMain) {
     ipcMain.handle('get-files', async () => {
-        const WORD_DIR = getWordbooksDirectory();
-        return fs.readdirSync(WORD_DIR).filter(f => f.endsWith('.xlsx') || f.endsWith('.csv'));
+        try {
+            const WORD_DIR = getWordbooksDirectory();
+            
+            // 경로가 존재하고 디렉토리인지 확인
+            if (!fs.existsSync(WORD_DIR)) {
+                fs.mkdirSync(WORD_DIR, { recursive: true });
+                return [];
+            }
+            
+            const stats = fs.statSync(WORD_DIR);
+            if (!stats.isDirectory()) {
+                console.error(`[get-files] 경로가 디렉토리가 아닙니다: ${WORD_DIR}`);
+                return [];
+            }
+            
+            return fs.readdirSync(WORD_DIR).filter(f => {
+                const filePath = path.join(WORD_DIR, f);
+                try {
+                    return fs.statSync(filePath).isFile() && (f.endsWith('.xlsx') || f.endsWith('.csv'));
+                } catch (e) {
+                    return false;
+                }
+            });
+        } catch (error) {
+            console.error('[get-files] 오류 발생:', error.message);
+            return [];
+        }
     });
 
     ipcMain.handle('read-excel', async (event, filename) => {
-        const WORD_DIR = getWordbooksDirectory();
-        const filePath = path.join(WORD_DIR, filename);
-        const workbook = XLSX.readFile(filePath);
-        const result = {};
-        workbook.SheetNames.forEach(sheetName => {
-            const sheet = workbook.Sheets[sheetName];
-            result[sheetName] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-        });
-        return result;
+        try {
+            const WORD_DIR = getWordbooksDirectory();
+            const filePath = path.join(WORD_DIR, filename);
+            
+            // 파일 존재 확인
+            if (!fs.existsSync(filePath)) {
+                throw new Error(`파일을 찾을 수 없습니다: ${filename}`);
+            }
+            
+            // 경로 보안 검증 (상위 디렉토리 접근 방지)
+            const resolvedPath = path.resolve(filePath);
+            const resolvedDir = path.resolve(WORD_DIR);
+            if (!resolvedPath.startsWith(resolvedDir)) {
+                throw new Error('잘못된 파일 경로입니다.');
+            }
+            
+            const workbook = XLSX.readFile(filePath);
+            const result = {};
+            workbook.SheetNames.forEach(sheetName => {
+                const sheet = workbook.Sheets[sheetName];
+                result[sheetName] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+            });
+            return result;
+        } catch (error) {
+            console.error('[read-excel] 오류 발생:', error.message);
+            throw error;
+        }
     });
 }
 
@@ -38,18 +81,97 @@ function setupDbPathHandlers(ipcMain) {
         const configFile = path.join(userDataPath, 'config.json');
         
         try {
-            if (!fs.existsSync(dbPath)) {
-                throw new Error('경로가 존재하지 않습니다.');
-            }
+            // 타임아웃 설정 (10초)
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('경로 접근 시간이 초과되었습니다. 네트워크 연결을 확인해주세요.')), 10000);
+            });
             
+            // 경로 존재 확인 (비동기)
+            const checkPathPromise = new Promise((resolve, reject) => {
+                // 네트워크 경로인지 확인
+                const isNetworkPath = dbPath.startsWith('\\\\') || dbPath.startsWith('//');
+                
+                // 네트워크 경로의 경우 fs.stat을 먼저 시도 (더 안정적)
+                // 로컬 경로의 경우 fs.access 사용
+                const checkMethod = isNetworkPath ? 'stat' : 'access';
+                
+                if (checkMethod === 'stat') {
+                    // 네트워크 경로: fs.stat 사용
+                    fs.stat(dbPath, (statErr, stats) => {
+                        if (statErr) {
+                            let errorMsg = '경로가 존재하지 않거나 접근할 수 없습니다.';
+                            errorMsg += '\n\n네트워크 경로 확인 사항:';
+                            errorMsg += '\n1. 공유 폴더가 올바르게 공유되었는지 확인';
+                            errorMsg += '\n2. 네트워크 연결 상태 확인';
+                            errorMsg += '\n3. 경로 형식: \\\\IP주소\\공유이름 또는 \\\\컴퓨터이름\\공유이름';
+                            errorMsg += '\n4. Windows 탐색기에서 해당 경로로 직접 접근 가능한지 확인';
+                            errorMsg += '\n5. 읽기/쓰기 권한이 있는지 확인';
+                            errorMsg += `\n\n입력한 경로: ${dbPath}`;
+                            errorMsg += `\n오류 코드: ${statErr.code || 'UNKNOWN'}`;
+                            errorMsg += `\n오류 메시지: ${statErr.message}`;
+                            reject(new Error(errorMsg));
+                        } else if (!stats.isDirectory()) {
+                            reject(new Error('경로가 폴더가 아닙니다. 폴더 경로를 입력해주세요.'));
+                        } else {
+                            // 읽기 권한 확인
+                            fs.access(dbPath, fs.constants.R_OK, (readErr) => {
+                                if (readErr) {
+                                    reject(new Error('폴더에 읽기 권한이 없습니다. 공유 폴더 권한을 확인해주세요.'));
+                                } else {
+                                    // 쓰기 권한 확인 (DB 파일 생성에 필요)
+                                    fs.access(dbPath, fs.constants.W_OK, (writeErr) => {
+                                        if (writeErr) {
+                                            reject(new Error('폴더에 쓰기 권한이 없습니다. 공유 폴더에 읽기/쓰기 권한을 부여해주세요.'));
+                                        } else {
+                                            resolve();
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    // 로컬 경로: fs.access 사용
+                    fs.access(dbPath, fs.constants.F_OK, (err) => {
+                        if (err) {
+                            reject(new Error(`경로가 존재하지 않거나 접근할 수 없습니다.\n입력한 경로: ${dbPath}\n오류: ${err.message}`));
+                        } else {
+                            // 디렉토리인지 확인
+                            fs.stat(dbPath, (statErr, stats) => {
+                                if (statErr) {
+                                    reject(new Error(`경로 정보를 확인할 수 없습니다.\n오류: ${statErr.message}`));
+                                } else if (!stats.isDirectory()) {
+                                    reject(new Error('경로가 폴더가 아닙니다. 폴더 경로를 입력해주세요.'));
+                                } else {
+                                    resolve();
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+            
+            // 타임아웃과 경로 확인을 동시에 실행
+            await Promise.race([checkPathPromise, timeoutPromise]);
+            
+            // 설정 파일 저장
             const config = { dbPath: dbPath };
-            fs.writeFileSync(configFile, JSON.stringify(config, null, 2), 'utf8');
+            await fs.promises.writeFile(configFile, JSON.stringify(config, null, 2), 'utf8');
             
-            // DB 초기화 테스트
-            const Database = require('better-sqlite3');
-            const testDbPath = path.join(dbPath, DB_NAME);
-            const testDb = new Database(testDbPath);
-            testDb.close();
+            // DB 초기화 테스트 (타임아웃 포함)
+            const testDbPromise = new Promise((resolve, reject) => {
+                try {
+                    const Database = require('better-sqlite3');
+                    const testDbPath = path.join(dbPath, DB_NAME);
+                    const testDb = new Database(testDbPath);
+                    testDb.close();
+                    resolve();
+                } catch (dbError) {
+                    reject(new Error('데이터베이스 연결 테스트 실패: ' + dbError.message));
+                }
+            });
+            
+            await Promise.race([testDbPromise, timeoutPromise]);
             
             return { success: true };
         } catch (error) {

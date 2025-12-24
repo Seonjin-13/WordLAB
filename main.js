@@ -4,6 +4,7 @@ require('dotenv').config();
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { exec } = require('child_process');
 const { setupAllHandlers } = require('./src/ipc-handlers');
 const { getWordbooksDirectory } = require('./src/db');
 
@@ -42,9 +43,67 @@ if (process.env.NODE_ENV !== 'production') {
 // Wordbooks 디렉토리 생성 (DB 디렉토리 내부)
 app.whenReady().then(() => {
     getWordbooksDirectory(); // Wordbooks 폴더 생성
+    
+    // 첫 실행 시 바탕화면 바로가기 생성 (프로덕션 모드에서만)
+    if (app.isPackaged) {
+        createDesktopShortcuts();
+    }
 });
 
 let mainWindow = null;
+
+/**
+ * 바탕화면에 바로가기 생성 (첫 실행 시에만)
+ */
+function createDesktopShortcuts() {
+    try {
+        const userDataPath = app.getPath('userData');
+        const flagFile = path.join(userDataPath, 'shortcuts_created.flag');
+        
+        // 이미 생성되었는지 확인
+        if (fs.existsSync(flagFile)) {
+            return; // 이미 생성됨
+        }
+        
+        const desktopPath = app.getPath('desktop');
+        const exePath = process.execPath;
+        const exeDir = path.dirname(exePath);
+        const wordbooksDir = getWordbooksDirectory();
+        
+        // 1. exe 파일 바로가기 생성
+        const exeShortcutPath = path.join(desktopPath, 'Word LAB.lnk');
+        createShortcut(exePath, exeShortcutPath, 'Word LAB - 단어 시험지 생성 프로그램', exeDir);
+        
+        // 2. Wordbooks 폴더 바로가기 생성
+        const wordbooksShortcutPath = path.join(desktopPath, 'Wordbooks.lnk');
+        createShortcut(wordbooksDir, wordbooksShortcutPath, 'Word LAB - 단어장 폴더', wordbooksDir);
+        
+        // 플래그 파일 생성 (생성 완료 표시)
+        fs.writeFileSync(flagFile, '1', 'utf8');
+        
+        console.log('[바로가기 생성] 바탕화면에 바로가기가 생성되었습니다.');
+    } catch (error) {
+        console.error('[바로가기 생성 오류]', error);
+    }
+}
+
+/**
+ * Windows 바로가기 생성 (PowerShell 사용)
+ */
+function createShortcut(targetPath, shortcutPath, description, workingDir) {
+    // 경로의 백슬래시를 이스케이프하고 따옴표 처리
+    const escapePath = (p) => p.replace(/\\/g, '\\\\').replace(/'/g, "''");
+    const escapeText = (t) => t.replace(/'/g, "''");
+    
+    // PowerShell 스크립트 생성
+    const psScript = `$WshShell = New-Object -ComObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('${escapePath(shortcutPath)}'); $Shortcut.TargetPath = '${escapePath(targetPath)}'; $Shortcut.WorkingDirectory = '${escapePath(workingDir)}'; $Shortcut.Description = '${escapeText(description)}'; $Shortcut.IconLocation = '${escapePath(targetPath)}'; $Shortcut.Save()`;
+    
+    exec(`powershell -Command "${psScript}"`, (error) => {
+        if (error) {
+            console.error(`[바로가기 생성 실패] ${shortcutPath}:`, error);
+        }
+    });
+}
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -59,22 +118,45 @@ function createWindow() {
     });
     mainWindow.loadFile('index.html');
     
-    // 개발자 도구 열기 (F12 또는 Ctrl+Shift+I로도 열 수 있음)
-    // 개발 중에는 자동으로 열리도록, 프로덕션에서는 제거
-    if (process.env.NODE_ENV !== 'production') {
+    // 개발자 도구 열기 (개발 모드에서만)
+    if (process.env.NODE_ENV !== 'production' && !app.isPackaged) {
         mainWindow.webContents.openDevTools();
+        
+        // 개발 모드에서만 F12 키로 개발자 도구 토글
+        mainWindow.webContents.on('before-input-event', (event, input) => {
+            if (input.key === 'F12') {
+                if (mainWindow.webContents.isDevToolsOpened()) {
+                    mainWindow.webContents.closeDevTools();
+                } else {
+                    mainWindow.webContents.openDevTools();
+                }
+            }
+        });
     }
     
-    // F12 키로 개발자 도구 토글
-    mainWindow.webContents.on('before-input-event', (event, input) => {
-        if (input.key === 'F12') {
-            if (mainWindow.webContents.isDevToolsOpened()) {
-                mainWindow.webContents.closeDevTools();
-            } else {
-                mainWindow.webContents.openDevTools();
-            }
+    // 프로덕션 모드에서는 개발자 도구 완전 비활성화
+    if (app.isPackaged) {
+        // 개발자 도구가 열려있으면 닫기
+        if (mainWindow.webContents.isDevToolsOpened()) {
+            mainWindow.webContents.closeDevTools();
         }
-    });
+        
+        mainWindow.webContents.on('before-input-event', (event, input) => {
+            // F11, F12, Ctrl+Shift+I 등 개발자 도구 단축키 차단
+            if (input.key === 'F11' || 
+                input.key === 'F12' || 
+                (input.control && input.shift && input.key === 'I') ||
+                (input.control && input.shift && input.key === 'J') ||
+                (input.control && input.shift && input.key === 'C')) {
+                event.preventDefault();
+            }
+        });
+        
+        // 개발자 도구 열기 시도 차단
+        mainWindow.webContents.on('devtools-opened', () => {
+            mainWindow.webContents.closeDevTools();
+        });
+    }
     
     // IPC 핸들러 설정
     setupAllHandlers(ipcMain, mainWindow);

@@ -9,7 +9,8 @@
     "postinstall": "electron-rebuild",
     "build": "electron-builder",
     "build:win": "electron-builder --win",
-    "build:win:portable": "electron-builder --win portable"
+    "build:win:portable": "electron-builder --win portable",
+    "create-shortcut": "powershell -ExecutionPolicy Bypass -File create-shortcut.ps1"
   },
   "keywords": [
     "voca",
@@ -22,6 +23,7 @@
   "build": {
     "appId": "com.wordlab.app",
     "productName": "Word LAB",
+    "icon": "./build/WordLAB_icon.ico",
     "directories": {
       "output": "dist"
     },
@@ -59,8 +61,11 @@
           ]
         }
       ],
+      "icon": "./build/WordLAB_icon.ico",
       "sign": false,
-      "verifyUpdateCodeSignature": false
+      "verifyUpdateCodeSignature": false,
+      "requestedExecutionLevel": "asInvoker",
+      "signDlls": false
     },
     "nsis": {
       "oneClick": false,
