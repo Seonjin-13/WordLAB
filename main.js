@@ -4,6 +4,13 @@ require('dotenv').config();
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
+
+const checkIconPath = path.join(__dirname, 'build', 'WordLAB_icon.ico');
+console.log('--------------------------------------------------');
+console.log('1. 아이콘 경로:', checkIconPath);
+console.log('2. 파일 존재 여부:', fs.existsSync(checkIconPath) ? '✅ 있음 (성공)' : '❌ 없음 (실패)');
+console.log('--------------------------------------------------');
+
 const { exec } = require('child_process');
 const { setupAllHandlers } = require('./src/ipc-handlers');
 const { getWordbooksDirectory } = require('./src/db');
@@ -106,13 +113,32 @@ function createShortcut(targetPath, shortcutPath, description, workingDir) {
 }
 
 function createWindow() {
+    // 운영체제별 아이콘 경로 설정
+    let iconPath;
+    if (process.platform === 'win32') {
+        // Windows: .ico 파일 사용
+        iconPath = path.join(__dirname, 'build', 'WordLAB_icon.ico');
+        // ICO 파일이 없으면 PNG 사용
+        if (!fs.existsSync(iconPath)) {
+            iconPath = path.join(__dirname, 'build', 'WordLAB_icon.png');
+        }
+    } else if (process.platform === 'darwin') {
+        // macOS: .icns 파일 사용 (현재는 PNG로 대체)
+        iconPath = path.join(__dirname, 'build', 'WordLAB_icon.png');
+    } else {
+        // Linux: PNG 파일 사용
+        iconPath = path.join(__dirname, 'build', 'WordLAB_icon.png');
+    }
+    
     mainWindow = new BrowserWindow({
         width: 1280,
         height: 900,
         title: 'Word LAB',
+        icon: iconPath,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
+            sandbox: false,
             preload: path.join(__dirname, 'preload.js')
         }
     });

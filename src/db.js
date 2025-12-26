@@ -10,28 +10,6 @@ function getDbDirectory() {
     const userDataPath = app.getPath('userData');
     const configFile = path.join(userDataPath, 'config.json');
     
-    if (fs.existsSync(configFile)) {
-        try {
-            const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
-            if (config.dbPath) {
-                // 네트워크 경로 접근 시 타임아웃 방지를 위해 try-catch로 감싸기
-                try {
-                    if (fs.existsSync(config.dbPath)) {
-                        const stats = fs.statSync(config.dbPath);
-                        if (stats.isDirectory()) {
-                            return config.dbPath;
-                        }
-                    }
-                } catch (networkError) {
-                    // 네트워크 경로 접근 실패 시 기본 경로 사용
-                    console.warn('네트워크 경로 접근 실패, 기본 경로 사용:', networkError.message);
-                }
-            }
-        } catch (e) {
-            // 설정 파일 읽기 실패 (기본값 사용)
-        }
-    }
-    
     // 기본값: exe 파일과 같은 위치의 Database 폴더 (포터블 버전)
     // 개발 모드: 프로젝트 루트의 Database 폴더
     // 빌드 모드: exe 파일이 있는 위치의 Database 폴더
@@ -45,6 +23,31 @@ function getDbDirectory() {
         defaultDbDir = path.join(__dirname, '..', 'Database');
     }
     
+    // 공유 폴더 경로 확인
+    if (fs.existsSync(configFile)) {
+        try {
+            const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+            if (config.dbPath) {
+                // 네트워크 경로 접근 시 타임아웃 방지를 위해 try-catch로 감싸기
+                try {
+                    if (fs.existsSync(config.dbPath)) {
+                        const stats = fs.statSync(config.dbPath);
+                        if (stats.isDirectory()) {
+                            // 공유 폴더 접근 가능: 공유 폴더 사용
+                            return config.dbPath;
+                        }
+                    }
+                } catch (networkError) {
+                    // 네트워크 경로 접근 실패 시 기본 경로 사용
+                    console.warn('네트워크 경로 접근 실패, 기본 경로 사용:', networkError.message);
+                }
+            }
+        } catch (e) {
+            // 설정 파일 읽기 실패 (기본값 사용)
+        }
+    }
+    
+    // 공유 폴더가 없거나 접근 불가능: 로컬 Database 폴더 생성 및 사용
     if (!fs.existsSync(defaultDbDir)) {
         fs.mkdirSync(defaultDbDir, { recursive: true });
     }

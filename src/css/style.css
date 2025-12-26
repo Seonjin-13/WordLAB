@@ -60,30 +60,30 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Malgun Got
 
 /* --- [왼쪽 사이드바] --- */
 .sidebar { 
-    width: 380px; 
-    min-width: 400px; max-width: 600px; /* 헤더 버튼들이 모두 보이도록 최소 너비 증가 */
+    width: 23.75rem; /* 380px */
+    min-width: 25rem; max-width: 37.5rem; /* 400px, 600px - 헤더 버튼들이 모두 보이도록 최소 너비 증가 */
     background: white; padding: 0; display: flex; flex-direction: column; 
     z-index: 10; height: 100vh; box-sizing: border-box;
     flex-shrink: 0; 
 }
 
 .sidebar-header {
-    padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;
+    padding: 0.9375rem 1.25rem; display: flex; justify-content: space-between; align-items: center;
     border-bottom: 1px solid #eee; background: #fff;
     min-width: 0; /* flexbox에서 텍스트 오버플로우 허용 */
 }
 .app-title { 
-    font-size: 18px; font-weight: 800; color: #228be6; margin: 0; 
+    font-size: 1.125rem; font-weight: 800; color: #228be6; margin: 0; 
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     flex-shrink: 1; min-width: 0;
 }
 .header-buttons { 
-    display: flex; gap: 8px; align-items: center; 
+    display: flex; gap: 0.5rem; align-items: center; 
     flex-shrink: 0; /* 버튼 영역은 줄어들지 않도록 */
 }
 .settings-btn, .students-btn {
-    background: none; border: none; font-size: 13px; cursor: pointer; color: #868e96; transition: 0.2s; padding: 6px 10px;
-    border-radius: 4px; font-weight: 500;
+    background: none; border: none; font-size: 0.8125rem; cursor: pointer; color: #868e96; transition: 0.2s; padding: 0.375rem 0.625rem;
+    border-radius: 0.25rem; font-weight: 500;
     white-space: nowrap; /* 버튼 텍스트 줄바꿈 방지 */
     flex-shrink: 0; /* 버튼 크기 고정 */
 }
@@ -94,12 +94,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Malgun Got
 .settings-btn:hover { transform: rotate(90deg); }
 
 .sidebar-content {
-    padding: 15px 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; 
+    padding: 0.9375rem 1.25rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 0.75rem; 
 }
 .section { 
     display: flex; 
     flex-direction: column; 
-    gap: 8px; 
+    gap: 0.5rem; 
 }
 .section:not(.section-grow) {
     flex-shrink: 1; /* 다른 섹션들은 필요시 줄어들 수 있음 */
@@ -112,22 +112,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Malgun Got
 } 
 
 h2 { 
-    margin: 0 0 6px 0; font-size: 13px; font-weight: 800; color: #495057; 
-    text-transform: uppercase; letter-spacing: 0.5px; 
-    text-align: left; display: flex; align-items: center; gap: 6px;
+    margin: 0 0 0.375rem 0; font-size: 0.8125rem; font-weight: 800; color: #495057; 
+    text-transform: uppercase; letter-spacing: 0.03125rem; 
+    text-align: left; display: flex; align-items: center; gap: 0.375rem;
     white-space: nowrap;
 }
 h2.option-header {
     justify-content: space-between;
 }
-h2::before { content: ''; display: block; width: 4px; height: 14px; background: #228be6; border-radius: 2px; }
+h2::before { content: ''; display: block; width: 0.25rem; height: 0.875rem; background: #228be6; border-radius: 0.125rem; }
 
-label { display: block; font-size: 12px; font-weight: 600; color: #495057; margin-bottom: 6px; text-align: left; }
+label { display: block; font-size: 0.75rem; font-weight: 600; color: #495057; margin-bottom: 0.375rem; text-align: left; }
 select, input[type="text"], input[type="number"], input[type="date"], input[type="checkbox"] { 
-    width: 100%; padding: 8px; border: 1px solid #dee2e6; border-radius: 6px; box-sizing: border-box; font-size: 13px; margin-bottom: 0; 
+    width: 100%; padding: 0.5rem; border: 1px solid #dee2e6; border-radius: 0.375rem; box-sizing: border-box; font-size: 0.8125rem; margin-bottom: 0; 
 }
 input[type="checkbox"] { width: auto; cursor: pointer; }
-input:focus, select:focus { outline: none; border-color: #228be6; box-shadow: 0 0 0 2px rgba(34, 139, 230, 0.1); }
+input:focus, select:focus { outline: none; border-color: #228be6; box-shadow: 0 0 0 0.125rem rgba(34, 139, 230, 0.1); }
 input:not([disabled]), select:not([disabled]), textarea:not([disabled]) { 
     pointer-events: auto !important; 
     cursor: text;
@@ -136,20 +136,20 @@ input[type="checkbox"], input[type="radio"] { cursor: pointer; }
 
 /* --- [챕터 리스트] --- */
 .chapter-container { 
-    border: 1px solid #dee2e6; border-radius: 8px; background: white; 
+    border: 1px solid #dee2e6; border-radius: 0.5rem; background: white; 
     display: flex; flex-direction: column; 
     flex: 1 1 0; 
-    min-height: 200px; 
+    min-height: 12.5rem; 
     max-height: none; /* 제한 제거하여 더 크게 확장 가능 */
 }
 .chapter-header { 
-    padding: 10px 12px; 
+    padding: 0.625rem 0.75rem; 
     background: #f8f9fa; 
     border-bottom: 1px solid #dee2e6; 
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
-    font-size: 12px; 
+    font-size: 0.75rem; 
     font-weight: 600; 
     color: #495057; 
 }
@@ -158,7 +158,7 @@ input[type="checkbox"], input[type="radio"] { cursor: pointer; }
     cursor: pointer; 
     display: flex; 
     align-items: center; 
-    gap: 6px; 
+    gap: 0.375rem; 
     font-weight: 500;
 }
 .chapter-header label:hover {
@@ -166,29 +166,29 @@ input[type="checkbox"], input[type="radio"] { cursor: pointer; }
 }
 
 .chapter-list { 
-    flex: 1; overflow-y: auto; padding: 5px; background: #fff; 
-    display: grid; grid-template-columns: 1fr 1fr; gap: 4px; align-content: start;
+    flex: 1; overflow-y: auto; padding: 0.3125rem; background: #fff; 
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem; align-content: start;
     min-height: 0;
 }
 .chapter-item { 
-    display: flex; align-items: center; padding: 8px 8px; font-size: 12px; cursor: pointer; 
-    border: 1px solid #e9ecef; border-radius: 6px; background: #fff; 
+    display: flex; align-items: center; padding: 0.5rem; font-size: 0.75rem; cursor: pointer; 
+    border: 1px solid #e9ecef; border-radius: 0.375rem; background: #fff; 
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     transition: all 0.15s ease;
-    min-height: 23px;
+    min-height: 1.4375rem;
 }
 .chapter-item:hover { 
     background: #e7f5ff; 
     border-color: #74c0fc; 
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transform: translateY(-0.0625rem);
+    box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.05);
 }
 .chapter-item input { 
-    margin-right: 8px; 
+    margin-right: 0.5rem; 
     cursor: pointer; 
     flex-shrink: 0;
-    width: 16px;
-    height: 16px;
+    width: 1rem;
+    height: 1rem;
 }
 .chapter-item span {
     flex: 1;
@@ -196,9 +196,9 @@ input[type="checkbox"], input[type="radio"] { cursor: pointer; }
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.chapter-list::-webkit-scrollbar { width: 6px; }
-.chapter-list::-webkit-scrollbar-thumb { background: #ced4da; border-radius: 3px; }
-.stats-text { text-align: right; font-size: 11px; color: #868e96; margin-top: 4px; }
+.chapter-list::-webkit-scrollbar { width: 0.375rem; }
+.chapter-list::-webkit-scrollbar-thumb { background: #ced4da; border-radius: 0.1875rem; }
+.stats-text { text-align: right; font-size: 0.6875rem; color: #868e96; margin-top: 0.25rem; }
 .stats-highlight { color: #fa5252; font-weight: bold; }
 
 /* --- [버튼 그룹 (2x3 그리드)] --- */
@@ -206,20 +206,20 @@ input[type="checkbox"], input[type="radio"] { cursor: pointer; }
     margin-top: auto; 
     display: grid; 
     grid-template-columns: 1fr 1fr; /* 2열 */
-    gap: 8px; 
-    padding-top: 5px; 
+    gap: 0.5rem; 
+    padding-top: 0.3125rem; 
 }
 /* btn-full 제거함 (모든 버튼이 1칸씩 차지) */
 
 /* --- [저작권 푸터] --- */
 .copyright-footer {
-    margin-top: 5px;
+    margin-top: 0.3125rem;
     flex-shrink: 0;
-    padding-top: 8px;
+    padding-top: 0.5rem;
     border-top: 1px solid #eee;
 }
 .copyright-text {
-    font-size: 9px;
+    font-size: 0.5625rem;
     color: #adb5bd;
     text-align: center;
     padding: 0;
@@ -227,8 +227,8 @@ input[type="checkbox"], input[type="radio"] { cursor: pointer; }
 }
 
 button.action-btn { 
-    padding: 0; border: none; border-radius: 6px; cursor: pointer; 
-    font-weight: 700; font-size: 13px; transition: 0.2s; height: 45px; /* 높이 약간 키움 */
+    padding: 0; border: none; border-radius: 0.375rem; cursor: pointer; 
+    font-weight: 700; font-size: 0.8125rem; transition: 0.2s; height: 2.8125rem; /* 높이 약간 키움 */
     display: flex; justify-content: center; align-items: center;
 }
 .btn-primary { background: #228be6; color: white; }
@@ -242,18 +242,18 @@ button.action-btn {
 .btn-outline.active { background: #ffd43b; border-color: #fcc419; color: #000; }
 .btn-danger-outline { background: white; border: 1px solid #fa5252; color: #fa5252; }
 .btn-danger-outline:hover { background: #fff5f5; }
-.btn-sm-danger { font-size: 11px; padding: 4px 8px; background: #fff0f0; color: #e03131; border: 1px solid #ffc9c9; border-radius: 4px; cursor: pointer; }
+.btn-sm-danger { font-size: 0.6875rem; padding: 0.25rem 0.5rem; background: #fff0f0; color: #e03131; border: 1px solid #ffc9c9; border-radius: 0.25rem; cursor: pointer; }
 
 .btn-pin { 
-    width: 32px; 
-    height: 32px; 
-    margin-bottom: 8px; 
+    width: 2rem; 
+    height: 2rem; 
+    margin-bottom: 0.5rem; 
     padding: 0; 
-    font-size: 16px; 
+    font-size: 1rem; 
     color: #ccc; 
     background: white; 
     border: 1px solid #dee2e6; 
-    border-radius: 6px; 
+    border-radius: 0.375rem; 
     cursor: pointer; 
     display: flex;
     align-items: center;
@@ -264,7 +264,7 @@ button.action-btn {
 
 /* --- [크기 조절 핸들 (Resizer)] --- */
 .resizer {
-    width: 6px; background: #e9ecef; cursor: col-resize; transition: 0.2s; z-index: 20;
+    width: 0.375rem; background: #e9ecef; cursor: col-resize; transition: 0.2s; z-index: 20;
     border-left: 1px solid #dee2e6; border-right: 1px solid #dee2e6;
 }
 .resizer:hover, .resizer.resizing { background: #228be6; }
@@ -293,18 +293,20 @@ button.action-btn {
 }
 
 /* --- [시험지 디자인] --- */
-.brand-header { margin-bottom: 5px; display: flex; align-items: center; min-height: 20px; }
+.brand-header { margin-bottom: 3px; display: flex; align-items: center; min-height: 20px; }
 .brand-logo { object-fit: contain; } 
 .brand-text { font-size: 18px; font-weight: bold; color: #555; }
 
-.test-title-section { text-align: center; margin-bottom: 12px; }
+.test-title-section { text-align: center; margin-bottom: 8px; }
 .test-title { font-size: 24px; font-weight: 900; margin: 0; color: #000; letter-spacing: 2px; font-family: "Malgun Gothic", sans-serif; line-height: 1.2; }
-.test-subtitle { text-align: left; font-size: 10px; color: #444; margin-top: 4px; font-weight: 600; }
+.test-subtitle { text-align: left; font-size: 10px; color: #444; margin-top: 3px; font-weight: 600; }
 
 .test-header-row { 
     display: flex; justify-content: space-between; align-items: flex-end; 
-    border-bottom: 2px solid #333; padding-bottom: 6px; margin-bottom: 18px; 
+    border-bottom: 2px solid #333; padding-bottom: 6px; margin-bottom: 15px; 
     font-size: 14px; font-family: "Malgun Gothic"; 
+    min-height: 40px; /* 모든 페이지에서 구분선 위치 동일하게 */
+    box-sizing: border-box;
 }
 .test-info div { margin-bottom: 3px; }
 
@@ -329,11 +331,24 @@ button.action-btn {
 .show-answer .questions-column {
     overflow-wrap: break-word;
 }
-.q-row { display: flex; align-items: flex-end; margin-bottom: 25px; font-size: 15px; }
+.q-row { display: flex; align-items: baseline; margin-bottom: 25px; font-size: 15px; }
 .show-answer .q-row { margin-bottom: 22px; }
 .q-num { width: 30px; color: #868e96; text-align: right; margin-right: 10px; font-size: 13px; font-weight: 600; flex-shrink: 0; align-self: flex-start; padding-top: 2px; }
-.q-text { font-weight: 700; margin-right: 8px; color: #212529; font-size: 15px; flex-shrink: 0; }
-.q-line { flex: 1; border-bottom: 1px solid #ced4da; margin-bottom: 3px; min-width: 50px; }
+.q-text { 
+    font-weight: 700; 
+    margin-right: 8px; 
+    color: #212529; 
+    font-size: 15px; 
+    flex-shrink: 1; 
+    max-width: 45%; 
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    line-height: 1.4;
+    max-height: 2.8em; /* 약 2줄 높이 */
+    overflow: hidden;
+}
+.q-line { flex: 1; border-bottom: 1px solid #ced4da; margin-bottom: 3px; min-width: 5rem; flex-shrink: 0; align-self: flex-end; }
 .a-text { display: none; margin-left: 10px; color: #228be6; font-weight: bold; font-size: 10px; line-height: 1.4; word-break: keep-all; }
 .show-answer .a-text { 
     display: inline-block; 
