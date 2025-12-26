@@ -120,7 +120,7 @@ export function generateTest() {
         const showMainTitle = localStorage.getItem(SHOW_MAIN_TITLE_KEY) !== 'false'; 
         const mainTitle = localStorage.getItem(MAIN_TITLE_KEY) || "VOCABULARY TEST";
         const brandHeaderHeight = Math.max(logoHeight + 5, 25);
-        const brandHeaderMargin = Math.max(logoHeight * 0.1, 8); 
+        const brandHeaderMargin = Math.max(logoHeight * 0.05, 3); 
         const isFirstPage = pageIdx === 0;
         
         const pageHtml = `
@@ -151,6 +151,20 @@ export function generateTest() {
         container.innerHTML += pageHtml;
     });
     
+    // 모든 페이지의 구분선 위치를 첫 번째 페이지와 동일하게 맞추기
+    setTimeout(() => {
+        const firstHeaderRow = container.querySelector('.paper:first-child .test-header-row');
+        if (firstHeaderRow) {
+            const firstHeight = firstHeaderRow.offsetHeight;
+            const allHeaderRows = container.querySelectorAll('.paper .test-header-row');
+            allHeaderRows.forEach(headerRow => {
+                headerRow.style.minHeight = `${firstHeight}px`;
+            });
+        }
+        // 긴 단어 처리: 폰트 크기 자동 조정
+        adjustLongWords();
+    }, 100);
+    
     // 초기 줌 설정
     const defaultZoom = 0.6;
     changeZoom(defaultZoom);
@@ -167,6 +181,57 @@ export function generateTest() {
         total: actualCount,
         selectedSheets: selectedSheetNames
     };
+}
+
+// 긴 단어 처리 함수: 단어가 영역을 넘어가면 폰트 크기 조정
+function adjustLongWords() {
+    const qTextElements = document.querySelectorAll('.q-text');
+    const maxWidthPercent = 45; // CSS의 max-width와 동일
+    const minFontSize = 11; // 최소 폰트 크기
+    const baseFontSize = 15; // 기본 폰트 크기
+    
+    qTextElements.forEach(qText => {
+        const qRow = qText.closest('.q-row');
+        if (!qRow) return;
+        
+        const qLine = qRow.querySelector('.q-line');
+        if (!qLine) return;
+        
+        // 원래 폰트 크기로 리셋
+        qText.style.fontSize = '';
+        qText.style.maxWidth = '';
+        
+        // 임시로 측정하기 위해 원래 스타일 적용
+        const rowWidth = qRow.offsetWidth;
+        const qNumWidth = qRow.querySelector('.q-num')?.offsetWidth || 40;
+        const marginRight = 8;
+        const maxTextWidth = (rowWidth * maxWidthPercent / 100) - qNumWidth - marginRight;
+        
+        // 실제 텍스트 너비 측정
+        const tempSpan = document.createElement('span');
+        tempSpan.style.cssText = `
+            position: absolute;
+            visibility: hidden;
+            white-space: nowrap;
+            font-weight: 700;
+            font-size: ${baseFontSize}px;
+            font-family: ${getComputedStyle(qText).fontFamily};
+        `;
+        tempSpan.textContent = qText.textContent;
+        document.body.appendChild(tempSpan);
+        const textWidth = tempSpan.offsetWidth;
+        document.body.removeChild(tempSpan);
+        
+        // 텍스트가 영역을 넘어가면 폰트 크기 조정
+        if (textWidth > maxTextWidth) {
+            const scaleFactor = maxTextWidth / textWidth;
+            const newFontSize = Math.max(minFontSize, baseFontSize * scaleFactor * 0.95); // 5% 여유
+            qText.style.fontSize = `${newFontSize}px`;
+        }
+        
+        // 최대 너비 설정 (CSS와 동일하게)
+        qText.style.maxWidth = `${maxWidthPercent}%`;
+    });
 }
 
 // 시험 기록 자동 저장
