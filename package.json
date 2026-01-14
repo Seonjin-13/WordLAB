@@ -1,6 +1,6 @@
 {
   "name": "word-lab",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "Word LAB - 단어 시험지 생성 프로그램",
   "main": "main.js",
   "scripts": {
@@ -49,8 +49,8 @@
       "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
       "!**/{appveyor.yml,.travis.yml,circle.yml}",
       "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
-      "!Database/**/*",
-      "!Wordbooks/**/*",
+      "Database/",
+      "Wordbooks/",
       "!*.md",
       "!NETWORK_SETUP.md",
       "!BUILD_GUIDE.md"
@@ -59,13 +59,6 @@
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64",
-            "ia32"
-          ]
-        },
-        {
-          "target": "portable",
           "arch": [
             "x64",
             "ia32"
@@ -92,12 +85,16 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "perMachine": false,
       "installerLanguages": ["en_US", "ko-KR"],
       "createDesktopShortcut": "always",
       "shortcutName": "Word LAB",
       "createStartMenuShortcut": true,
       "menuCategory": "Word LAB",
-      "installerHeaderIcon": "./build/WordLAB_icon_256.ico"
+      "installerHeaderIcon": "./build/WordLAB_icon_256.ico",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true
     }
   },
   "dependencies": {

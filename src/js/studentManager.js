@@ -308,6 +308,8 @@ export function closeStudentsModal() {
     document.getElementById('newStudentSchool').value = '';
     document.getElementById('newStudentGrade').value = '';
     document.getElementById('newStudentWordbook').value = '';
+    // 선택된 단어장 초기화
+    clearSelectedWordbooks('new');
     // 검색 필드 초기화
     const searchInput = document.getElementById('studentSearchInput');
     if (searchInput) {
@@ -397,6 +399,123 @@ function ensureStudentsModalOpen() {
 }
 
 let allWordbooks = []; // 전체 단어장 목록 저장
+let selectedWordbooksNew = []; // 새 학생 추가 시 선택된 단어장 목록
+let selectedWordbooksEdit = []; // 학생 수정 시 선택된 단어장 목록
+
+// 선택된 단어장 가져오기
+function getSelectedWordbooks(type) {
+    return type === 'new' ? selectedWordbooksNew : selectedWordbooksEdit;
+}
+
+// 선택된 단어장 설정
+function setSelectedWordbooks(type, wordbooks) {
+    if (type === 'new') {
+        selectedWordbooksNew = wordbooks;
+    } else {
+        selectedWordbooksEdit = wordbooks;
+    }
+}
+
+// 선택된 단어장 초기화
+function clearSelectedWordbooks(type) {
+    if (type === 'new') {
+        selectedWordbooksNew = [];
+        updateSelectedWordbooksDisplay('new');
+    } else {
+        selectedWordbooksEdit = [];
+        updateSelectedWordbooksDisplay('edit');
+    }
+}
+
+// 단어장 추가
+function addSelectedWordbook(type, wordbook) {
+    if (!wordbook || wordbook.trim() === '') return;
+    
+    const wordbookName = wordbook.trim();
+    const selected = type === 'new' ? selectedWordbooksNew : selectedWordbooksEdit;
+    
+    if (!selected.includes(wordbookName)) {
+        selected.push(wordbookName);
+        if (type === 'new') {
+            selectedWordbooksNew = selected;
+        } else {
+            selectedWordbooksEdit = selected;
+        }
+        updateSelectedWordbooksDisplay(type);
+    }
+    
+    // 검색 입력 필드 초기화
+    const searchInput = document.getElementById(`${type}StudentWordbookSearch`);
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    
+    // 드롭다운 닫기
+    const dropdown = document.getElementById(`${type}StudentWordbookDropdown`);
+    if (dropdown) {
+        dropdown.style.display = 'none';
+    }
+}
+
+// 단어장 제거
+function removeSelectedWordbook(type, wordbook) {
+    const selected = type === 'new' ? selectedWordbooksNew : selectedWordbooksEdit;
+    const index = selected.indexOf(wordbook);
+    if (index > -1) {
+        selected.splice(index, 1);
+        if (type === 'new') {
+            selectedWordbooksNew = selected;
+        } else {
+            selectedWordbooksEdit = selected;
+        }
+        updateSelectedWordbooksDisplay(type);
+    }
+}
+
+// 선택된 단어장 목록 UI 업데이트
+function updateSelectedWordbooksDisplay(type) {
+    const containerId = `${type}SelectedWordbooks`;
+    let container = document.getElementById(containerId);
+    
+    if (!container) {
+        // 컨테이너가 없으면 생성
+        const searchInputId = `${type}StudentWordbookSearch`;
+        const searchInput = document.getElementById(searchInputId);
+        if (!searchInput) return;
+        
+        const wordbookInputContainer = searchInput.parentElement;
+        if (!wordbookInputContainer) return;
+        
+        container = document.createElement('div');
+        container.id = containerId;
+        container.style.cssText = 'margin-top: 8px; min-height: 30px;';
+        wordbookInputContainer.appendChild(container);
+    }
+    
+    const selected = getSelectedWordbooks(type);
+    
+    if (selected.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    container.innerHTML = `
+        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            ${selected.map(wb => {
+                const escapedWb = wb.replace(/'/g, "\\'");
+                const displayWb = wb.replace(/'/g, "&#39;");
+                return `
+                    <div style="display: flex; align-items: center; gap: 6px; background: white; padding: 6px 10px; border-radius: 6px; font-size: 12px; border: 1px solid #dee2e6;">
+                        <span>${displayWb}</span>
+                        <button onclick="window.studentManager.removeWordbook('${type}', '${escapedWb}')" 
+                                style="background: none; border: none; color: #868e96; cursor: pointer; padding: 0; font-size: 14px; font-weight: bold; line-height: 1;" 
+                                title="제거">×</button>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
 
 export async function loadWordbookOptions() {
     try {
@@ -414,19 +533,24 @@ export async function loadWordbookOptions() {
         
         // select는 숨겨진 상태로 유지 (호환성)
         const select = document.getElementById('newStudentWordbook');
-        select.innerHTML = '<option value="">선택 안 함</option>';
-        allWordbooks.forEach(wb => {
-            const option = document.createElement('option');
-            option.value = wb.name;
-            option.textContent = wb.name;
-            select.appendChild(option);
-        });
+        if (select) {
+            select.innerHTML = '<option value="">선택 안 함</option>';
+            allWordbooks.forEach(wb => {
+                const option = document.createElement('option');
+                option.value = wb.name;
+                option.textContent = wb.name;
+                select.appendChild(option);
+            });
+        }
         
         // 검색 드롭다운 초기화 (표시하지 않음)
         const dropdown = document.getElementById('newStudentWordbookDropdown');
         if (dropdown) {
             dropdown.style.display = 'none';
         }
+        
+        // 선택된 단어장 초기화 (새 학생 추가 시)
+        clearSelectedWordbooks('new');
     } catch (error) {
         // 단어장 목록 로딩 실패
     }
@@ -474,13 +598,8 @@ export function filterWordbookList(type) {
 }
 
 export function selectWordbook(type, wordbookName) {
-    const searchInput = document.getElementById(`${type}StudentWordbookSearch`);
-    const select = document.getElementById(`${type}StudentWordbook`);
-    const dropdown = document.getElementById(`${type}StudentWordbookDropdown`);
-    
-    if (searchInput) searchInput.value = wordbookName;
-    if (select) select.value = wordbookName;
-    if (dropdown) dropdown.style.display = 'none';
+    // 단어장을 선택된 목록에 추가
+    addSelectedWordbook(type, wordbookName);
 }
 
 export function showWordbookDropdown(type) {
@@ -541,24 +660,62 @@ export async function loadStudents() {
             return;
         }
         
-        // 각 레코드를 개별적으로 표시 (같은 학생이 여러 단어장을 가질 수 있음)
-        listDiv.innerHTML = filteredStudents.map(student => {
+        // 학생별로 그룹화 (같은 학생의 여러 단어장)
+        const studentMap = {};
+        filteredStudents.forEach(student => {
+            const key = `${student.name}_${student.class || ''}_${student.school || ''}_${student.grade || ''}`;
+            if (!studentMap[key]) {
+                studentMap[key] = {
+                    name: student.name,
+                    class: student.class,
+                    school: student.school,
+                    grade: student.grade,
+                    ids: [],
+                    wordbooks: []
+                };
+            }
+            // 첫 번째 레코드의 ID를 대표 ID로 사용 (수정 모달에서 사용)
+            if (studentMap[key].ids.length === 0) {
+                studentMap[key].ids.push(student.id);
+            }
+            studentMap[key].wordbooks.push({
+                id: student.id,
+                wordbook: student.wordbook || '단어장 없음'
+            });
+        });
+        
+        const groupedStudents = Object.values(studentMap);
+        
+        // 학생별로 그룹화하여 표시
+        listDiv.innerHTML = groupedStudents.map(studentGroup => {
             const infoText = [
-                student.class ? `반: ${student.class}` : '',
-                student.school ? `학교: ${student.school}` : '',
-                student.grade ? `학년: ${student.grade}` : ''
+                studentGroup.class ? `반: ${studentGroup.class}` : '',
+                studentGroup.school ? `학교: ${studentGroup.school}` : '',
+                studentGroup.grade ? `학년: ${studentGroup.grade}` : ''
             ].filter(Boolean).join(' | ');
             
+            const representativeId = studentGroup.ids[0];
+            const escapedName = studentGroup.name.replace(/'/g, "\\'");
+            
             return `
-                <div class="student-item">
+                <div class="student-item" style="margin-bottom: 12px;">
                     <div style="flex: 1;">
-                        <div class="student-name">${student.name}</div>
+                        <div class="student-name">${studentGroup.name}</div>
                         ${infoText ? `<div style="font-size: 11px; color: #868e96; margin-top: 4px;">${infoText}</div>` : ''}
-                        <div style="font-size: 11px; color: #495057; margin-top: 4px;">📚 ${student.wordbook || '단어장 없음'}</div>
+                        <div style="margin-top: 8px;">
+                            ${studentGroup.wordbooks.map((wb, idx) => `
+                                <div style="display: inline-flex; align-items: center; gap: 6px; background: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; color: #495057; margin-right: 6px; margin-bottom: 4px; border: 1px solid #dee2e6;">
+                                    <span>📚 ${wb.wordbook.replace(/'/g, "&#39;")}</span>
+                                    <button class="btn-icon" onclick="event.stopPropagation(); window.studentManager.deleteStudent(${wb.id}, '${escapedName}', '${(wb.wordbook || '').replace(/'/g, "\\'")}')" 
+                                            title="이 단어장 제거" 
+                                            style="background: none; border: none; color: #868e96; cursor: pointer; padding: 0; font-size: 12px; line-height: 1; margin-left: 4px;">×</button>
+                                </div>
+                            `).join('')}
+                        </div>
                     </div>
                     <div class="student-actions">
-                        <button class="btn-icon" onclick="window.studentManager.openEditModal(${student.id})" title="수정">✏️</button>
-                        <button class="btn-icon" onclick="window.studentManager.deleteStudent(${student.id}, '${student.name.replace(/'/g, "\\'")}')" title="삭제">🗑️</button>
+                        <button class="btn-icon" onclick="window.studentManager.openEditModal(${representativeId})" title="수정">✏️</button>
+                        <button class="btn-icon" onclick="window.studentManager.deleteStudent(${representativeId}, '${escapedName}', null, true)" title="전체 삭제">🗑️</button>
                     </div>
                 </div>
             `;
@@ -581,8 +738,9 @@ export async function addStudent() {
     const className = document.getElementById('newStudentClass').value.trim();
     const school = document.getElementById('newStudentSchool').value.trim();
     const grade = document.getElementById('newStudentGrade').value.trim();
-    const wordbook = document.getElementById('newStudentWordbookSearch')?.value.trim() || 
-                        document.getElementById('newStudentWordbook').value.trim();
+    
+    // 여러 단어장 가져오기
+    const selectedWordbooks = getSelectedWordbooks('new');
     
     if (!name) {
         window._isStudentOperationInProgress = false;
@@ -591,36 +749,56 @@ export async function addStudent() {
         return;
     }
     
+    if (selectedWordbooks.length === 0) {
+        window._isStudentOperationInProgress = false;
+        showStudentMessage('최소 한 개의 단어장을 선택해주세요.', 'error');
+        return;
+    }
+    
     try {
-        const result = await window.api.addStudent({
-            name,
-            class: className || null,
-            school: school || null,
-            grade: grade || null,
-            wordbook: wordbook || null
-        });
-        if (result.success) {
+        let successCount = 0;
+        let errorMessages = [];
+        
+        // 각 단어장마다 학생 레코드 생성 (기존 구조 활용)
+        for (const wordbook of selectedWordbooks) {
+            const result = await window.api.addStudent({
+                name,
+                class: className || null,
+                school: school || null,
+                grade: grade || null,
+                wordbook: wordbook || null
+            });
+            
+            if (result.success) {
+                successCount++;
+            } else {
+                errorMessages.push(`${wordbook}: ${result.error}`);
+            }
+        }
+        
+        if (successCount > 0) {
             // 입력 필드 초기화
             document.getElementById('newStudentName').value = '';
             document.getElementById('newStudentClass').value = '';
             document.getElementById('newStudentSchool').value = '';
             document.getElementById('newStudentGrade').value = '';
-            const newWordbookSearch = document.getElementById('newStudentWordbookSearch');
-            const newWordbookSelect = document.getElementById('newStudentWordbook');
-            if (newWordbookSearch) newWordbookSearch.value = '';
-            if (newWordbookSelect) newWordbookSelect.value = '';
+            clearSelectedWordbooks('new');
             
             await loadStudents();
-            // 자동완성 캐시 업데이트
-            if (window.updateStudentsCache) {
-                await window.updateStudentsCache();
+            // 자동완성 캐시 업데이트 (즉시 반영)
+            if (window.studentAutocomplete?.forceUpdateCache) {
+                await window.studentAutocomplete.forceUpdateCache();
             }
             // 학생 관리 모달이 열려있도록 강제 보장 (여러 시점에 확인)
             ensureStudentsModalOpen();
-            // 성공 메시지 표시
-            showStudentMessage('학생이 추가되었습니다!', 'success');
+            
+            if (errorMessages.length > 0) {
+                showStudentMessage(`${successCount}개 단어장이 추가되었습니다. 일부 오류: ${errorMessages.join(', ')}`, 'error');
+            } else {
+                showStudentMessage(`${successCount}개 단어장이 추가되었습니다!`, 'success');
+            }
         } else {
-            showStudentMessage('오류: ' + result.error, 'error');
+            showStudentMessage('오류: ' + errorMessages.join(', '), 'error');
         }
     } catch (error) {
         showStudentMessage('오류: ' + error.message, 'error');
@@ -635,18 +813,35 @@ export async function addStudent() {
 export async function openEditModal(id) {
     editingStudentId = id;
     
-    // 해당 학생 정보 가져오기
-    const student = allStudentsList.find(s => s.id === id);
-    if (!student) {
+    // 대표 레코드 찾기
+    const representativeRecord = allStudentsList.find(s => s.id === id);
+    if (!representativeRecord) {
         alert('학생 정보를 찾을 수 없습니다.');
         return;
     }
     
+    // 같은 학생의 모든 레코드 가져오기 (같은 이름, 반, 학교, 학년을 가진 레코드)
+    const studentRecords = allStudentsList.filter(s => 
+        s.name === representativeRecord.name &&
+        (s.class || '') === (representativeRecord.class || '') &&
+        (s.school || '') === (representativeRecord.school || '') &&
+        (s.grade || '') === (representativeRecord.grade || '')
+    );
+    
     // 수정 모달의 입력 필드에 현재 값 채우기
-    document.getElementById('editStudentName').value = student.name || '';
-    document.getElementById('editStudentClass').value = student.class || '';
-    document.getElementById('editStudentSchool').value = student.school || '';
-    document.getElementById('editStudentGrade').value = student.grade || '';
+    document.getElementById('editStudentName').value = representativeRecord.name || '';
+    document.getElementById('editStudentClass').value = representativeRecord.class || '';
+    document.getElementById('editStudentSchool').value = representativeRecord.school || '';
+    document.getElementById('editStudentGrade').value = representativeRecord.grade || '';
+    
+    // 등록된 단어장 목록 가져오기 (students 테이블에서)
+    const registeredWordbooks = studentRecords
+        .map(r => r.wordbook)
+        .filter(wb => wb && wb.trim() !== '');
+    
+    // 수정 모달에 현재 등록된 단어장 목록 표시
+    setSelectedWordbooks('edit', [...registeredWordbooks]);
+    updateSelectedWordbooksDisplay('edit');
     
     // 단어장 옵션 로드
     try {
@@ -660,28 +855,28 @@ export async function openEditModal(id) {
             
             // select는 숨겨진 상태로 유지 (호환성)
             const select = document.getElementById('editStudentWordbook');
-            select.innerHTML = '<option value="">선택 안 함</option>';
-            allWordbooks.forEach(wb => {
-                const option = document.createElement('option');
-                option.value = wb.name;
-                option.textContent = wb.name;
-                if (student.wordbook === wb.name) {
-                    option.selected = true;
-                }
-                select.appendChild(option);
-            });
+            if (select) {
+                select.innerHTML = '<option value="">선택 안 함</option>';
+                allWordbooks.forEach(wb => {
+                    const option = document.createElement('option');
+                    option.value = wb.name;
+                    option.textContent = wb.name;
+                    select.appendChild(option);
+                });
+            }
         }
         
-        // 검색 입력 필드에 현재 값 설정
+        // 검색 입력 필드 초기화
         const searchInput = document.getElementById('editStudentWordbookSearch');
-        if (searchInput && student.wordbook) {
-            searchInput.value = student.wordbook;
+        if (searchInput) {
+            searchInput.value = '';
         }
         
         // 검색 드롭다운 초기화
         filterWordbookList('edit');
     } catch (error) {
         // 단어장 목록 로딩 실패
+        clearSelectedWordbooks('edit');
     }
     
     // 모달 표시
@@ -691,6 +886,7 @@ export async function openEditModal(id) {
 export function closeEditModal() {
     document.getElementById('editStudentModal').style.display = 'none';
     editingStudentId = null;
+    clearSelectedWordbooks('edit');
 }
 
 export async function saveEditStudent() {
@@ -700,8 +896,9 @@ export async function saveEditStudent() {
     const className = document.getElementById('editStudentClass').value.trim();
     const school = document.getElementById('editStudentSchool').value.trim();
     const grade = document.getElementById('editStudentGrade').value.trim();
-    const wordbook = document.getElementById('editStudentWordbookSearch')?.value.trim() || 
-                        document.getElementById('editStudentWordbook').value.trim();
+    
+    // 선택된 단어장 목록 가져오기
+    const selectedWordbooks = getSelectedWordbooks('edit');
     
     if (!name) {
         showStudentMessage('학생 이름을 입력해주세요.', 'error');
@@ -709,30 +906,85 @@ export async function saveEditStudent() {
         return;
     }
     
+    if (selectedWordbooks.length === 0) {
+        showStudentMessage('최소 한 개의 단어장을 선택해주세요.', 'error');
+        return;
+    }
+    
     try {
-        const result = await window.api.updateStudent(editingStudentId, {
-            name,
-            class: className || null,
-            school: school || null,
-            grade: grade || null,
-            wordbook: wordbook || null
-        });
-        
-        if (result.success) {
-            // 편집 모달만 닫고 학생 관리 모달은 유지
-            closeEditModal();
-            await loadStudents();
-            // 자동완성 캐시 업데이트
-            if (window.updateStudentsCache) {
-                await window.updateStudentsCache();
-            }
-            // 학생 관리 모달이 열려있도록 강제 보장 (여러 시점에 확인)
-            ensureStudentsModalOpen();
-            // 성공 메시지 표시
-            showStudentMessage('학생 정보가 수정되었습니다!', 'success');
-        } else {
-            showStudentMessage('오류: ' + result.error, 'error');
+        // 대표 레코드 찾기
+        const representativeRecord = allStudentsList.find(s => s.id === editingStudentId);
+        if (!representativeRecord) {
+            showStudentMessage('학생 정보를 찾을 수 없습니다.', 'error');
+            return;
         }
+        
+        // 같은 학생의 모든 레코드 가져오기 (같은 이름, 반, 학교, 학년을 가진 레코드)
+        const existingRecords = allStudentsList.filter(s => 
+            s.name === representativeRecord.name &&
+            (s.class || '') === (representativeRecord.class || '') &&
+            (s.school || '') === (representativeRecord.school || '') &&
+            (s.grade || '') === (representativeRecord.grade || '')
+        );
+        
+        const existingWordbooks = existingRecords.map(r => r.wordbook).filter(Boolean);
+        
+        // 기본 정보가 변경되었으면 모든 레코드 업데이트
+        const infoChanged = 
+            name !== (representativeRecord.name || '') ||
+            (className || '') !== (representativeRecord.class || '') ||
+            (school || '') !== (representativeRecord.school || '') ||
+            (grade || '') !== (representativeRecord.grade || '');
+        
+        if (infoChanged) {
+            // 모든 레코드의 기본 정보 업데이트
+            for (const record of existingRecords) {
+                await window.api.updateStudent(record.id, {
+                    name,
+                    class: className || null,
+                    school: school || null,
+                    grade: grade || null,
+                    wordbook: record.wordbook || null // 기존 단어장 유지
+                });
+            }
+        }
+        
+        // 제거할 단어장 찾기
+        const toRemove = existingWordbooks.filter(wb => !selectedWordbooks.includes(wb));
+        
+        // 추가할 단어장 찾기
+        const toAdd = selectedWordbooks.filter(wb => !existingWordbooks.includes(wb));
+        
+        // 제거할 레코드 삭제
+        for (const wordbook of toRemove) {
+            const recordToDelete = existingRecords.find(r => r.wordbook === wordbook);
+            if (recordToDelete) {
+                await window.api.deleteStudent(recordToDelete.id);
+            }
+        }
+        
+        // 추가할 단어장으로 새 레코드 생성
+        for (const wordbook of toAdd) {
+            await window.api.addStudent({
+                name,
+                class: className || null,
+                school: school || null,
+                grade: grade || null,
+                wordbook: wordbook || null
+            });
+        }
+        
+        // 편집 모달만 닫고 학생 관리 모달은 유지
+        closeEditModal();
+        await loadStudents();
+        // 자동완성 캐시 업데이트 (즉시 반영)
+        if (window.studentAutocomplete?.forceUpdateCache) {
+            await window.studentAutocomplete.forceUpdateCache();
+        }
+        // 학생 관리 모달이 열려있도록 강제 보장 (여러 시점에 확인)
+        ensureStudentsModalOpen();
+        // 성공 메시지 표시
+        showStudentMessage('학생 정보가 수정되었습니다!', 'success');
     } catch (error) {
         showStudentMessage('오류: ' + error.message, 'error');
     } finally {
@@ -756,11 +1008,36 @@ export async function updateStudent(id, studentData) {
     }
 }
 
-export async function deleteStudent(id, name) {
+export async function deleteStudent(id, name, wordbook = null, deleteAll = false) {
+    let confirmTitle, confirmMessage;
+    
+    if (deleteAll) {
+        // 해당 학생의 모든 레코드 삭제
+        const allRecords = allStudentsList.filter(s => {
+            const record = allStudentsList.find(r => r.id === id);
+            if (!record) return false;
+            return s.name === record.name && 
+                   s.class === record.class && 
+                   s.school === record.school && 
+                   s.grade === record.grade;
+        });
+        
+        confirmTitle = `"${name}" 학생의 모든 단어장을 삭제하시겠습니까?`;
+        confirmMessage = `총 ${allRecords.length}개의 단어장 레코드와 관련된 모든 시험 기록이 삭제됩니다.`;
+    } else if (wordbook) {
+        // 특정 단어장만 삭제
+        confirmTitle = `"${name}" 학생의 "${wordbook}" 단어장을 제거하시겠습니까?`;
+        confirmMessage = '해당 단어장 레코드와 관련된 모든 시험 기록이 삭제됩니다.';
+    } else {
+        // 단일 레코드 삭제 (기존 방식)
+        confirmTitle = `"${name}" 학생을 삭제하시겠습니까?`;
+        confirmMessage = '관련된 모든 시험 기록도 함께 삭제됩니다.';
+    }
+    
     // 사용자 정의 확인 다이얼로그 표시
     const confirmed = await showConfirmDialog(
-        `"${name}" 학생을 삭제하시겠습니까?`,
-        '관련된 모든 시험 기록도 함께 삭제됩니다.',
+        confirmTitle,
+        confirmMessage,
         '삭제',
         '취소'
     );
@@ -770,29 +1047,74 @@ export async function deleteStudent(id, name) {
     }
     
     try {
-        const result = await window.api.deleteStudent(id);
-        if (result.success) {
-            await loadStudents();
-            // 자동완성 캐시 업데이트 (즉시 업데이트하여 삭제된 학생이 자동완성에 나타나지 않도록)
-            if (window.updateStudentsCache) {
-                await window.updateStudentsCache();
+        if (deleteAll) {
+            // 대표 레코드 찾기
+            const representativeRecord = allStudentsList.find(r => r.id === id);
+            if (!representativeRecord) {
+                showStudentMessage('학생 정보를 찾을 수 없습니다.', 'error');
+                return;
             }
-            // 메인 화면의 학생 이름 입력 필드도 초기화 (삭제된 학생이 선택되어 있을 경우)
-            const nameInput = document.getElementById('inputName');
-            const studentIdInput = document.getElementById('inputStudentId');
-            if (nameInput && studentIdInput && studentIdInput.value === id.toString()) {
-                nameInput.value = '';
-                studentIdInput.value = '';
-                if (window.updateRealTimeInfo) {
-                    window.updateRealTimeInfo();
+            
+            // 해당 학생의 모든 레코드 삭제 (같은 이름, 반, 학교, 학년)
+            const allRecords = allStudentsList.filter(s => 
+                s.name === representativeRecord.name &&
+                (s.class || '') === (representativeRecord.class || '') &&
+                (s.school || '') === (representativeRecord.school || '') &&
+                (s.grade || '') === (representativeRecord.grade || '')
+            );
+            
+            let successCount = 0;
+            for (const record of allRecords) {
+                const result = await window.api.deleteStudent(record.id);
+                if (result.success) {
+                    successCount++;
                 }
             }
-            // 학생 관리 모달이 열려있도록 강제 보장 (여러 시점에 확인)
-            ensureStudentsModalOpen();
-            // 성공 메시지 표시
-            showStudentMessage('학생이 삭제되었습니다!', 'success');
+            
+            if (successCount > 0) {
+                await loadStudents();
+                if (window.studentAutocomplete?.forceUpdateCache) {
+                    await window.studentAutocomplete.forceUpdateCache();
+                }
+                const nameInput = document.getElementById('inputName');
+                const studentIdInput = document.getElementById('inputStudentId');
+                if (nameInput && studentIdInput) {
+                    const idsToCheck = allRecords.map(r => r.id.toString());
+                    if (idsToCheck.includes(studentIdInput.value)) {
+                        nameInput.value = '';
+                        studentIdInput.value = '';
+                        if (window.updateRealTimeInfo) {
+                            window.updateRealTimeInfo();
+                        }
+                    }
+                }
+                ensureStudentsModalOpen();
+                showStudentMessage(`${successCount}개의 레코드가 삭제되었습니다!`, 'success');
+            } else {
+                showStudentMessage('삭제에 실패했습니다.', 'error');
+            }
         } else {
-            showStudentMessage('오류: ' + result.error, 'error');
+            // 단일 레코드 삭제
+            const result = await window.api.deleteStudent(id);
+            if (result.success) {
+                await loadStudents();
+                if (window.updateStudentsCache) {
+                    await window.updateStudentsCache();
+                }
+                const nameInput = document.getElementById('inputName');
+                const studentIdInput = document.getElementById('inputStudentId');
+                if (nameInput && studentIdInput && studentIdInput.value === id.toString()) {
+                    nameInput.value = '';
+                    studentIdInput.value = '';
+                    if (window.updateRealTimeInfo) {
+                        window.updateRealTimeInfo();
+                    }
+                }
+                ensureStudentsModalOpen();
+                showStudentMessage('삭제되었습니다!', 'success');
+            } else {
+                showStudentMessage('오류: ' + result.error, 'error');
+            }
         }
     } catch (error) {
         showStudentMessage('오류: ' + error.message, 'error');
@@ -860,6 +1182,11 @@ function showConfirmDialog(title, message, confirmText = '확인', cancelText = 
     });
 }
 
+// 단어장 제거 함수 (전역 노출용)
+export function removeWordbook(type, wordbook) {
+    removeSelectedWordbook(type, wordbook);
+}
+
 // 전역으로 노출
 window.studentManager = {
     openSearchModal,
@@ -880,7 +1207,8 @@ window.studentManager = {
     filterWordbookList,
     selectWordbook,
     showWordbookDropdown,
-    toggleWordbookDropdown
+    toggleWordbookDropdown,
+    removeWordbook
 };
 
 // HTML onclick 속성 호환을 위한 전역 함수

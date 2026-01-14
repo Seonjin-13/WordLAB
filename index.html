@@ -32,7 +32,7 @@
                     </div>
                     <div style="flex:1; position: relative;">
                         <!--<label>학생 이름</label>-->
-                        <input type="text" id="inputName" placeholder="학생 이름 입력" oninput="updateRealTimeInfo(); searchStudentsAutocomplete()" onfocus="searchStudentsAutocomplete()" onblur="setTimeout(() => hideStudentDropdown(), 200)" style="width:100%; padding:0.5rem; border:1px solid #dee2e6; border-radius:0.375rem; box-sizing:border-box; font-size:0.8125rem;">
+                        <input type="text" id="inputName" placeholder="학생 이름 입력" oninput="updateRealTimeInfo(); searchStudentsAutocomplete(); window.studentAutocomplete?.onStudentNameChanged()" onfocus="searchStudentsAutocomplete()" onblur="setTimeout(() => hideStudentDropdown(), 200)" style="width:100%; padding:0.5rem; border:1px solid #dee2e6; border-radius:0.375rem; box-sizing:border-box; font-size:0.8125rem;">
                         <input type="hidden" id="inputStudentId" value="">
                         <div id="studentAutocompleteDropdown" class="student-autocomplete-dropdown" style="display: none;"></div>
                     </div>
@@ -45,15 +45,15 @@
                 <div style="display: flex; gap: 0.3125rem; align-items: center;">
                         <div style="flex: 1; position: relative;">
                             <div style="position: relative;">
-                                <button id="fileDropdownToggle" class="file-dropdown-toggle" onclick="toggleFileDropdown()" title="단어장 목록 열기">
-                                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <button class="file-dropdown-toggle" onclick="toggleFileDropdown()">
+                                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                                         <path d="M2 4L5 7L8 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                                     </svg>
                                 </button>
                                 <input type="text" id="fileSearchInput" placeholder="단어장 검색" 
                                        oninput="filterFileList(); toggleClearButton()" 
                                        onfocus="showFileDropdown()"
-                                       style="width: 100%; padding:0.5rem 1.875rem 0.5rem 2rem; border:1px solid #dee2e6; border-radius:0.375rem; box-sizing:border-box; font-size:0.8125rem; margin-bottom:0.5rem;">
+                                       style="width: 100%; padding:0.5rem 1.5rem 0.5rem 2rem; border:1px solid #dee2e6; border-radius:0.375rem; box-sizing:border-box; font-size:0.8125rem; margin-bottom:0.5rem;">
                                 <button id="fileSearchClear" class="file-search-clear" onclick="clearFileSearch()" style="display: none;" title="검색어 지우기">
                                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -263,7 +263,7 @@
                 <h4 style="margin: 0 0 15px 0; font-size: 14px; color: #495057;">프로그램 정보</h4>
                 <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
                     <div style="font-size: 24px; font-weight: 800; color: #228be6; margin-bottom: 10px;">Word LAB</div>
-                    <div style="font-size: 12px; color: #868e96; margin-bottom: 15px;">버전 1.0.0</div>
+                    <div style="font-size: 12px; color: #868e96; margin-bottom: 15px;">버전 1.1.1</div>
                     <div style="font-size: 13px; color: #495057; line-height: 1.8;">
                         단어 시험지 생성 프로그램
                     </div>
@@ -363,23 +363,27 @@
                 </div>
             </div>
             <div style="margin-bottom: 15px;">
-                <label>단어장</label>
-                <div style="position: relative;">
-                    <input type="text" id="editStudentWordbookSearch" placeholder="단어장 검색" 
-                           style="width: 100%; padding: 8px 30px 8px 32px; border: 1px solid #dee2e6; border-radius: 6px; box-sizing: border-box; font-size: 13px;"
-                           oninput="window.studentManager.filterWordbookList('edit')"
-                           onfocus="window.studentManager.showWordbookDropdown('edit')">
-                    <button class="file-dropdown-toggle" onclick="window.studentManager.toggleWordbookDropdown('edit')" 
-                            style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: none; cursor: pointer; padding: 4px;">
-                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M2 4L5 7L8 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </button>
-                    <select id="editStudentWordbook" style="display: none;">
-                        <option value="">선택 안 함</option>
-                    </select>
-                    <div id="editStudentWordbookDropdown" class="file-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #dee2e6; border-radius: 6px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: -8px;">
+                <label>단어장 (여러 개 선택 가능) *</label>
+                <div style="position: relative; display: flex; flex-direction: column;">
+                    <div style="position: relative; width: 100%;">
+                        <input type="text" id="editStudentWordbookSearch" placeholder="단어장 검색 후 선택 (여러 개 가능)" 
+                               style="width: 100%; padding: 8px 30px 8px 32px; border: 1px solid #dee2e6; border-radius: 6px; box-sizing: border-box; font-size: 13px;"
+                               oninput="window.studentManager.filterWordbookList('edit')"
+                               onfocus="window.studentManager.showWordbookDropdown('edit')">
+                        <button onclick="window.studentManager.toggleWordbookDropdown('edit')" 
+                                title="단어장 목록 열기"
+                                style="position: absolute; left: 8px; top: 47%; transform: translateY(-50%); border: none; background: transparent; cursor: pointer; padding: 0; margin: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; z-index: 2; color: #868e96;">
+                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+                                <path d="M2 4L5 7L8 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <select id="editStudentWordbook" style="display: none;">
+                            <option value="">선택 안 함</option>
+                        </select>
+                        <div id="editStudentWordbookDropdown" class="file-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #dee2e6; border-radius: 6px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 4px;">
+                        </div>
                     </div>
+                    <div id="editSelectedWordbooks" style="margin-top: 8px; min-height: 30px;"></div>
                 </div>
             </div>
             <div class="modal-btn-group">
@@ -415,23 +419,27 @@
                     </div>
                 </div>
                 <div style="margin-bottom: 10px;">
-                    <label>단어장</label>
-                    <div style="position: relative;">
-                        <input type="text" id="newStudentWordbookSearch" placeholder="단어장 검색" 
-                               style="width: 100%; padding: 8px 30px 8px 32px; border: 1px solid #dee2e6; border-radius: 6px; box-sizing: border-box; font-size: 13px;"
-                               oninput="window.studentManager.filterWordbookList('new')"
-                               onfocus="window.studentManager.showWordbookDropdown('new')">
-                        <button class="file-dropdown-toggle" onclick="window.studentManager.toggleWordbookDropdown('new')" 
-                                style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: none; cursor: pointer; padding: 4px;">
-                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M2 4L5 7L8 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </button>
-                        <select id="newStudentWordbook" style="display: none;">
-                            <option value="">선택 안 함</option>
-                        </select>
-                        <div id="newStudentWordbookDropdown" class="file-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #dee2e6; border-radius: 6px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: -8px;">
+                    <label>단어장 (여러 개 선택 가능) *</label>
+                    <div style="position: relative; display: flex; flex-direction: column;">
+                        <div style="position: relative; width: 100%;">
+                            <input type="text" id="newStudentWordbookSearch" placeholder="단어장 검색 후 선택 (여러 개 가능)" 
+                                   style="width: 100%; padding: 8px 30px 8px 32px; border: 1px solid #dee2e6; border-radius: 6px; box-sizing: border-box; font-size: 13px;"
+                                   oninput="window.studentManager.filterWordbookList('new')"
+                                   onfocus="window.studentManager.showWordbookDropdown('new')">
+                            <button onclick="window.studentManager.toggleWordbookDropdown('new')" 
+                                    title="단어장 목록 열기"
+                                    style="position: absolute; left: 8px; top: 47%; transform: translateY(-50%); border: none; background: transparent; cursor: pointer; padding: 0; margin: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; z-index: 2; color: #868e96;">
+                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+                                    <path d="M2 4L5 7L8 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                            <select id="newStudentWordbook" style="display: none;">
+                                <option value="">선택 안 함</option>
+                            </select>
+                            <div id="newStudentWordbookDropdown" class="file-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #dee2e6; border-radius: 6px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 4px;">
+                            </div>
                         </div>
+                        <div id="newSelectedWordbooks" style="margin-top: 8px; min-height: 30px;"></div>
                     </div>
                 </div>
                 <button class="action-btn btn-primary" style="width:100%; padding:10px; height:auto;" onclick="addStudent()">학생 추가</button>
