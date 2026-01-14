@@ -67,6 +67,6 @@ coverage/
 
 # File
 *.md
+*.pdf
 WordLAB_*
 convertImg2Ico.py
-.gitignore

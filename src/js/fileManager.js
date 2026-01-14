@@ -4,6 +4,7 @@ import { getPinnedFiles, setPinnedFiles } from './storage.js';
 let currentSelectedFile = '';
 let allFiles = [];
 let currentData = {};
+let studentWordbookFilter = null; // 학생의 단어장 필터 (null이면 모든 단어장 표시)
 
 export function setAllFiles(files) {
     allFiles = files;
@@ -88,17 +89,39 @@ export function filterFileList() {
         return;
     }
     
-    const filtered = allFiles.filter(f => 
-        f.toLowerCase().includes(searchTerm)
-    );
+    // 먼저 학생 단어장 필터 적용 (있는 경우)
+    let filtered = allFiles;
+    if (studentWordbookFilter && studentWordbookFilter.length > 0) {
+        filtered = allFiles.filter(f => {
+            const fileName = removeExtension(f);
+            return studentWordbookFilter.includes(fileName);
+        });
+    }
+    
+    // 검색어 필터 적용
+    if (searchTerm) {
+        filtered = filtered.filter(f => 
+            f.toLowerCase().includes(searchTerm)
+        );
+    }
     
     if (filtered.length === 0) {
-        dropdown.innerHTML = '<div class="file-dropdown-item" style="color: #999; cursor: default;">검색 결과가 없습니다.</div>';
+        const message = studentWordbookFilter && studentWordbookFilter.length > 0 
+            ? '등록된 단어장이 없습니다.' 
+            : '검색 결과가 없습니다.';
+        dropdown.innerHTML = `<div class="file-dropdown-item" style="color: #999; cursor: default;">${message}</div>`;
         dropdown.style.display = 'block';
         return;
     }
     
-    dropdown.innerHTML = filtered.map(f => {
+    // 학생 단어장 필터가 적용된 경우 힌트 표시
+    const filterHint = studentWordbookFilter && studentWordbookFilter.length > 0 
+        ? `<div style="padding: 8px 12px; font-size: 11px; color: #868e96; border-bottom: 1px solid #f1f3f5; background: #f8f9fa;">
+             📚 학생 등록 단어장 목록
+           </div>`
+        : '';
+    
+    dropdown.innerHTML = filterHint + filtered.map(f => {
         const isPinned = pinned.includes(f);
         const isSelected = f === currentSelectedFile;
         const displayName = removeExtension(f);
@@ -184,6 +207,8 @@ export function clearFileSearch() {
     searchInput.value = '';
     searchInput.focus();
     toggleClearButton();
+    // X 버튼 클릭 시 학생 단어장 필터도 해제
+    studentWordbookFilter = null;
     filterFileList();
 }
 
@@ -236,6 +261,31 @@ document.addEventListener('click', function(e) {
     }
 });
 
+// 학생 단어장 필터 설정
+export function setStudentWordbookFilter(wordbooks) {
+    studentWordbookFilter = wordbooks && Array.isArray(wordbooks) && wordbooks.length > 0 
+        ? wordbooks.map(wb => typeof wb === 'string' ? wb : wb.wordbook).filter(Boolean)
+        : null;
+    
+    // 학생 단어장 필터가 설정되면 검색 입력란 초기화 (필터가 제대로 보이도록)
+    if (studentWordbookFilter && studentWordbookFilter.length > 0) {
+        const searchInput = document.getElementById('fileSearchInput');
+        if (searchInput && searchInput.value.trim() !== '') {
+            searchInput.value = '';
+            toggleClearButton();
+        }
+    }
+    
+    // 필터 적용 후 드롭다운 새로고침
+    filterFileList();
+}
+
+// 학생 단어장 필터 해제
+export function clearStudentWordbookFilter() {
+    studentWordbookFilter = null;
+    filterFileList();
+}
+
 // 전역으로 노출 (HTML에서 onclick 사용)
 window.fileManager = {
     selectFile,
@@ -246,7 +296,9 @@ window.fileManager = {
     toggleFileDropdown,
     setCurrentSelectedFile,
     getCurrentSelectedFile,
-    getAllFiles
+    getAllFiles,
+    setStudentWordbookFilter,
+    clearStudentWordbookFilter
 };
 
 // HTML onclick 속성 호환을 위한 전역 함수

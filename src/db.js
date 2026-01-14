@@ -5,30 +5,17 @@ const { app } = require('electron');
 
 const DB_NAME = 'students.db';
 
-// DB 디렉토리 가져오기 (네트워크 공유 폴더 또는 로컬)
+// DB 디렉토리 가져오기 (공유 폴더 설정 유지 + 안전한 DB 위치)
 function getDbDirectory() {
     const userDataPath = app.getPath('userData');
     const configFile = path.join(userDataPath, 'config.json');
     
-    // 기본값: exe 파일과 같은 위치의 Database 폴더 (포터블 버전)
-    // 개발 모드: 프로젝트 루트의 Database 폴더
-    // 빌드 모드: exe 파일이 있는 위치의 Database 폴더
-    let defaultDbDir;
-    if (app.isPackaged) {
-        // 빌드된 앱: exe 파일이 있는 디렉토리
-        const exeDir = path.dirname(process.execPath);
-        defaultDbDir = path.join(exeDir, 'Database');
-    } else {
-        // 개발 모드: 프로젝트 루트
-        defaultDbDir = path.join(__dirname, '..', 'Database');
-    }
-    
-    // 공유 폴더 경로 확인
+    // 공유 폴더 설정 확인 (설정은 유지하지만 DB는 안전한 위치 사용)
     if (fs.existsSync(configFile)) {
         try {
             const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
             if (config.dbPath) {
-                // 네트워크 경로 접근 시 타임아웃 방지를 위해 try-catch로 감싸기
+                // 네트워크 경로 접근 시 타임아웃 방지
                 try {
                     if (fs.existsSync(config.dbPath)) {
                         const stats = fs.statSync(config.dbPath);
@@ -43,15 +30,85 @@ function getDbDirectory() {
                 }
             }
         } catch (e) {
-            // 설정 파일 읽기 실패 (기본값 사용)
+            // 설정 파일 읽기 실패
         }
     }
     
-    // 공유 폴더가 없거나 접근 불가능: 로컬 Database 폴더 생성 및 사용
-    if (!fs.existsSync(defaultDbDir)) {
-        fs.mkdirSync(defaultDbDir, { recursive: true });
+    // 기본 위치: 사용자 데이터 폴더 (업데이트 시에도 안전)
+    const dbDir = path.join(userDataPath, 'Database');
+    
+    // Database 폴더 생성
+    if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
     }
-    return defaultDbDir;
+    
+    // 기존 DB 파일들을 여러 위치에서 찾아서 마이그레이션
+    migrateExistingDatabases(dbDir);
+    
+    return dbDir;
+}
+
+// 기존 DB 파일들을 찾아서 마이그레이션 (안전 모드)
+function migrateExistingDatabases(targetDir) {
+    const targetDbPath = path.join(targetDir, DB_NAME);
+    
+    // ⚠️ 중요: 이미 타겟 위치에 DB가 있으면 절대 건드리지 않음
+    if (fs.existsSync(targetDbPath)) {
+        return; // 기존 DB 보호
+    }
+    
+    // 가능한 DB 위치들 (우선순위 순)
+    const possibleLocations = [
+        // 1. 이전 포터블 버전 위치 (exe와 같은 폴더)
+        app.isPackaged ? path.join(path.dirname(process.execPath), 'Database', DB_NAME) : null,
+        // 2. 개발 모드 위치
+        path.join(__dirname, '..', 'Database', DB_NAME),
+        // 3. 이전 AppData 위치 (직접 파일)
+        path.join(app.getPath('userData'), DB_NAME),
+        // 4. 프로젝트 루트 Database 폴더
+        app.isPackaged ? null : path.join(process.cwd(), 'Database', DB_NAME),
+        // 5. 현재 작업 디렉토리의 Database 폴더 (포터블 버전)
+        path.join(process.cwd(), 'Database', DB_NAME),
+        // 6. exe 파일 상위 디렉토리의 Database 폴더
+        app.isPackaged ? path.join(path.dirname(process.execPath), '..', 'Database', DB_NAME) : null,
+        // 7. 다양한 상대 경로들
+        app.isPackaged ? path.join(path.dirname(process.execPath), '..', '..', 'Database', DB_NAME) : null
+    ].filter(Boolean);
+    
+    // 첫 번째로 발견되는 DB 파일만 복사 (기존 DB가 없을 때만)
+    for (const dbPath of possibleLocations) {
+        if (fs.existsSync(dbPath)) {
+            try {
+                // 다시 한 번 확인: 복사 직전에 타겟 파일이 없는지 재확인
+                if (!fs.existsSync(targetDbPath)) {
+                    fs.copyFileSync(dbPath, targetDbPath);
+                    console.log(`DB 복구 완료: ${dbPath} → ${targetDbPath}`);
+                    
+                    // 단어장 폴더도 함께 복구 (기존 폴더가 없을 때만)
+                    const sourceWordbooksDir = path.join(path.dirname(dbPath), 'Wordbooks');
+                    const targetWordbooksDir = path.join(targetDir, 'Wordbooks');
+                    
+                    if (fs.existsSync(sourceWordbooksDir) && !fs.existsSync(targetWordbooksDir)) {
+                        fs.mkdirSync(targetWordbooksDir, { recursive: true });
+                        const files = fs.readdirSync(sourceWordbooksDir);
+                        const wordbookFiles = files.filter(f => f.endsWith('.xlsx') || f.endsWith('.csv'));
+                        
+                        wordbookFiles.forEach(file => {
+                            const sourcePath = path.join(sourceWordbooksDir, file);
+                            const targetPath = path.join(targetWordbooksDir, file);
+                            if (!fs.existsSync(targetPath)) {
+                                fs.copyFileSync(sourcePath, targetPath);
+                            }
+                        });
+                        console.log(`단어장 복구 완료: ${wordbookFiles.length}개 파일`);
+                    }
+                }
+                break;
+            } catch (error) {
+                console.warn(`DB 복구 실패 (${dbPath}):`, error.message);
+            }
+        }
+    }
 }
 
 // DB 경로 가져오기
